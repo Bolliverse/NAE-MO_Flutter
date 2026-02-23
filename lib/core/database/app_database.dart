@@ -1,19 +1,14 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:flutter/foundation.dart';
+import 'package:nae_mo/core/database/connection/connection.dart' as conn;
 import 'package:nae_mo/core/database/tables/category_table.dart';
 import 'package:nae_mo/core/database/tables/task_table.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(tables: [CategoryTable, TaskTable])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(conn.openConnection());
 
   @override
   int get schemaVersion => 1;
@@ -58,16 +53,4 @@ class AppDatabase extends _$AppDatabase {
       await into(categoryTable).insert(category);
     }
   }
-}
-
-QueryExecutor _openConnection() {
-  if (kIsWeb) {
-    // Web: 인메모리 DB (앱 종료 시 데이터 사라짐 — 추후 WebDatabase로 교체)
-    return NativeDatabase.memory();
-  }
-  return LazyDatabase(() async {
-    final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'nae_mo.db'));
-    return NativeDatabase.createInBackground(file);
-  });
 }
