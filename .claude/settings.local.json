@@ -5,7 +5,11 @@
       "Bash(flutter pub get:*)",
       "Bash(dart run build_runner build:*)",
       "Bash(flutter analyze:*)",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(flutter devices:*)",
+      "Bash(timeout 30 flutter run:*)",
+      "Bash(timeout 25 flutter run:*)",
+      "Bash(flutter clean:*)"
     ]
   }
 }
