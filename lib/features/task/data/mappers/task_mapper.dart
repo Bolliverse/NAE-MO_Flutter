@@ -24,4 +24,7 @@ class TaskMapper {
       dataList.map(toEntity).toList();
 }
 
-DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+DateTime _dateOnly(DateTime date) {
+  final local = date.toLocal();
+  return DateTime(local.year, local.month, local.day);
+}
