@@ -42,6 +42,21 @@ void main() {
     expect(session.provider, AuthProviderType.apple);
   });
 
+  test('finishes restoration as unauthenticated when persistence fails',
+      () async {
+    final repository = _FakeAuthSessionRepository(
+      restoreResult: fail(const CacheFailure('restore failed')),
+    );
+    final container = _createContainer(repository);
+
+    final state = await container.read(authViewModelProvider.future);
+
+    expect(state.session, isA<UnauthenticatedSession>());
+    expect(state.isSubmitting, isFalse);
+    expect(state.errorMessage, 'restore failed');
+    expect(container.read(authViewModelProvider), isA<AsyncData<AuthState>>());
+  });
+
   test('signs in once while duplicate taps are ignored', () async {
     final signInCompleter = Completer<Result<AuthSession>>();
     final repository = _FakeAuthSessionRepository(
