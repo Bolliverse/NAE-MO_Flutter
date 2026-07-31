@@ -19,6 +19,10 @@ void main() {
       final date = DateTime(local.year, local.month, local.day);
       final twoDaysEarlier = DateTime(date.year, date.month, date.day - 2);
       final oneDayEarlier = DateTime(date.year, date.month, date.day - 1);
+      final selectedDefensiveTarget =
+          date.add(const Duration(hours: 12)).toUtc();
+      final overdueDefensiveTarget =
+          oneDayEarlier.add(const Duration(hours: 12)).toUtc();
       final createdEarly = DateTime(2026, 7, 1, 8);
       final createdLater = DateTime(2026, 7, 1, 9);
       const firstCategory = Category(
@@ -64,6 +68,11 @@ void main() {
           id: 'overdue-created-later',
           targetDate: oneDayEarlier,
           createdAt: createdLater,
+        ),
+        _task(
+          id: 'overdue-0-defensive-date',
+          targetDate: overdueDefensiveTarget,
+          createdAt: createdEarly,
         ),
         _task(
           id: 'untimed-created-later',
@@ -208,6 +217,12 @@ void main() {
           createdAt: createdEarly,
         ),
         _task(
+          id: 'untimed-defensive-date',
+          targetDate: selectedDefensiveTarget,
+          categoryId: firstCategory.id,
+          createdAt: createdLater,
+        ),
+        _task(
           id: 'untimed-missing-a',
           targetDate: date,
           createdAt: createdEarly,
@@ -235,6 +250,7 @@ void main() {
         _ids(overview.overdueTodos),
         [
           'overdue-earliest',
+          'overdue-0-defensive-date',
           'overdue-a',
           'overdue-b',
           'overdue-created-later',
@@ -266,6 +282,7 @@ void main() {
           'untimed-a',
           'untimed-b',
           'untimed-created-later',
+          'untimed-defensive-date',
           'untimed-second-category',
           'untimed-missing-a',
           'untimed-missing-b',
@@ -305,6 +322,38 @@ void main() {
         ...overview.completedTodos,
       ].map((entry) => entry.task.id).toList();
       expect(ids.toSet(), hasLength(ids.length));
+    });
+
+    test('returns externally unmodifiable overview buckets', () async {
+      final date = DateTime(2026, 8, 1);
+      final taskRepository = _FakeTaskRepository(success(const []));
+      final categoryRepository = _FakeCategoryRepository(success(const []));
+      final useCase = GetTodayOverviewUseCase(
+        taskRepository,
+        categoryRepository,
+      );
+      final entry = TodayEntry(
+        task: _task(
+          id: 'candidate',
+          targetDate: date,
+          createdAt: date,
+        ),
+      );
+
+      final result = await useCase(date);
+
+      final overview = result.data!;
+      final buckets = [
+        overview.overdueTodos,
+        overview.allDayEvents,
+        overview.timelineItems,
+        overview.untimedTodos,
+        overview.completedTodos,
+      ];
+      for (final bucket in buckets) {
+        expect(() => bucket.add(entry), throwsUnsupportedError);
+        expect(() => bucket.remove(entry), throwsUnsupportedError);
+      }
     });
 
     test('returns the same task failure without reading categories', () async {
