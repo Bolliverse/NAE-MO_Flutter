@@ -1,6 +1,7 @@
 import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/calendar/presentation/states/task_dock_state.dart';
+import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/usecases/create_task_use_case.dart';
 import 'package:nae_mo/features/task/domain/usecases/get_tasks_use_case.dart';
 import 'package:nae_mo/features/task/domain/usecases/get_unscheduled_tasks_use_case.dart';
@@ -29,8 +30,7 @@ class TaskDockViewModel extends _$TaskDockViewModel {
   Future<void> _load(DateTime date) async {
     final unscheduledResult =
         await ref.read(getUnscheduledTasksUseCaseProvider).call();
-    final scheduledResult =
-        await ref.read(getTasksUseCaseProvider).call(date);
+    final scheduledResult = await ref.read(getTasksUseCaseProvider).call(date);
 
     // 두 쿼리 모두 성공해야 상태 업데이트
     unscheduledResult.fold(
@@ -39,8 +39,7 @@ class TaskDockViewModel extends _$TaskDockViewModel {
           onSuccess: (scheduled) {
             state = state.copyWith(
               unscheduledTasks: unscheduled,
-              completedTasks:
-                  scheduled.where((t) => t.isCompleted).toList(),
+              completedTasks: scheduled.where((t) => t.isCompleted).toList(),
               isLoading: false,
               failure: null,
             );
@@ -49,21 +48,18 @@ class TaskDockViewModel extends _$TaskDockViewModel {
               state = state.copyWith(isLoading: false, failure: f),
         );
       },
-      onFailure: (f) =>
-          state = state.copyWith(isLoading: false, failure: f),
+      onFailure: (f) => state = state.copyWith(isLoading: false, failure: f),
     );
   }
 
   /// 완료 섹션 펼치기/접기 — 동기, DB 조회 없음
   void toggleCompletedSection() {
-    state =
-        state.copyWith(isCompletedExpanded: !state.isCompletedExpanded);
+    state = state.copyWith(isCompletedExpanded: !state.isCompletedExpanded);
   }
 
   /// Dock 아이템 완료 토글 (3-G)
   Future<void> toggleComplete(String taskId) async {
-    final result =
-        await ref.read(toggleCompleteUseCaseProvider).call(taskId);
+    final result = await ref.read(toggleCompleteUseCaseProvider).call(taskId);
     result.fold(
       onSuccess: (_) {
         final date = ref.read(selectedDateProvider);
@@ -75,8 +71,14 @@ class TaskDockViewModel extends _$TaskDockViewModel {
 
   /// QuickAddInput에서 태스크 생성 (3-I)
   Future<void> createTask(String title) async {
+    final selectedDate = ref.read(selectedDateProvider);
     final result = await ref.read(createTaskUseCaseProvider).call(
-          CreateTaskParams(title: title, hasTime: false),
+          CreateTaskParams(
+            title: title,
+            kind: TaskKind.todo,
+            targetDate: _dateOnly(selectedDate),
+            hasTime: false,
+          ),
         );
     result.fold(
       onSuccess: (_) {
@@ -86,4 +88,9 @@ class TaskDockViewModel extends _$TaskDockViewModel {
       onFailure: (f) => state = state.copyWith(failure: f),
     );
   }
+}
+
+DateTime _dateOnly(DateTime date) {
+  final local = date.toLocal();
+  return DateTime(local.year, local.month, local.day);
 }
