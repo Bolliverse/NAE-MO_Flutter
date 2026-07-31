@@ -3,8 +3,10 @@ import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.d
 import 'package:nae_mo/features/task/domain/usecases/params/update_task_params.dart';
 
 abstract interface class TaskLocalDataSource {
+  Future<TaskTableData> getById(String id);
   Future<List<TaskTableData>> getByDate(DateTime date);
   Future<List<TaskTableData>> getByRange(DateTime start, DateTime end);
+  Future<List<TaskTableData>> getForTodayOverview(DateTime selectedDate);
   Future<List<TaskTableData>> getUnscheduled();
   Future<TaskTableData> insert(String id, CreateTaskParams params);
   Future<TaskTableData> update(UpdateTaskParams params);
