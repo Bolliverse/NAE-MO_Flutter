@@ -171,6 +171,26 @@ void main() {
     expect(find.text('로그아웃'), findsOneWidget);
   });
 
+  testWidgets('login remains usable with large system text', (tester) async {
+    tester.view
+      ..physicalSize = const Size(390, 844)
+      ..devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    await _pumpApp(tester, _FakeAuthSessionRepository());
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('NAE MO'), findsOneWidget);
+    expect(find.byKey(const Key('googleSignInButton')), findsOneWidget);
+    expect(find.byKey(const Key('appleSignInButton')), findsOneWidget);
+  });
+
   testWidgets('brand buttons expose semantics and lock during sign-in',
       (tester) async {
     final signInCompleter = Completer<Result<AuthSession>>();
