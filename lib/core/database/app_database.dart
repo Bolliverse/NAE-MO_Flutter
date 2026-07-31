@@ -8,10 +8,11 @@ part 'app_database.g.dart';
 
 @DriftDatabase(tables: [CategoryTable, TaskTable])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(conn.openConnection());
+  AppDatabase([QueryExecutor? executor])
+      : super(executor ?? conn.openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
