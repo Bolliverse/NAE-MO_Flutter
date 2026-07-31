@@ -143,6 +143,28 @@ void main() {
     expect(find.text('로그아웃 저장 실패'), findsOneWidget);
   });
 
+  testWidgets('mobile calendar moves view switching into the overflow menu',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final authRepository = _FakeAuthSessionRepository(
+      storedProvider: AuthProviderType.google,
+    );
+
+    await _pumpApp(tester, authRepository);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SegmentedButton), findsNothing);
+
+    await tester.tap(find.byKey(const Key('calendarMoreMenu')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('일 보기'), findsOneWidget);
+    expect(find.text('주 보기'), findsOneWidget);
+    expect(find.text('월 보기'), findsOneWidget);
+    expect(find.text('로그아웃'), findsOneWidget);
+  });
+
   testWidgets('brand buttons expose semantics and lock during sign-in',
       (tester) async {
     final signInCompleter = Completer<Result<AuthSession>>();
