@@ -2,8 +2,8 @@
 // ignore_for_file: unused_local_variable, unused_import
 import 'package:drift/drift.dart';
 import 'package:drift_dev/api/migrations_native.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:nae_mo/core/database/app_database.dart';
-import 'package:test/test.dart';
 import 'generated/schema.dart';
 
 import 'generated/schema_v1.dart' as v1;
@@ -21,7 +21,7 @@ void main() {
     // These simple tests verify all possible schema updates with a simple (no
     // data) migration. This is a quick way to ensure that written database
     // migrations properly alter the schema.
-    final versions = GeneratedHelper.versions;
+    const versions = GeneratedHelper.versions;
     for (final (i, fromVersion) in versions.indexed) {
       group('from $fromVersion', () {
         for (final toVersion in versions.skip(i + 1)) {
@@ -36,23 +36,91 @@ void main() {
     }
   });
 
-  // The following template shows how to write tests ensuring your migrations
-  // preserve existing data.
-  // Testing this can be useful for migrations that change existing columns
-  // (e.g. by alterating their type or constraints). Migrations that only add
-  // tables or columns typically don't need these advanced tests. For more
-  // information, see https://drift.simonbinder.eu/migrations/tests/#verifying-data-integrity
-  // TODO: This generated template shows how these tests could be written. Adopt
-  // it to your own needs when testing migrations with data integrity.
-  test("migration from v1 to v2 does not corrupt data", () async {
-    // Add data to insert into the old database, and the expected rows after the
-    // migration.
-    // TODO: Fill these lists
+  test('migration from v1 to v2 normalizes legacy planner rows', () async {
+    final allDayStart = DateTime.utc(2026, 1, 14, 22, 45);
+    final validTimedStart = DateTime.utc(2026, 4, 20, 8);
+    final validTimedEnd = DateTime.utc(2026, 4, 20, 9, 30);
+    final malformedStart = DateTime.utc(2026, 7, 3, 12);
+    final malformedEnd = DateTime.utc(2026, 7, 3, 11, 30);
+    final allDayCreatedAt = DateTime.utc(2026, 1, 10);
+    final validTimedCreatedAt = DateTime.utc(2026, 4, 1);
+    final malformedCreatedAt = DateTime.utc(2026, 7, 1);
+
     final oldCategoriesData = <v1.CategoriesData>[];
     final expectedNewCategoriesData = <v2.CategoriesData>[];
 
-    final oldTasksData = <v1.TasksData>[];
-    final expectedNewTasksData = <v2.TasksData>[];
+    final oldTasksData = <v1.TasksData>[
+      v1.TasksData(
+        id: 'completed-all-day',
+        title: 'Completed all-day event',
+        isCompleted: true,
+        hasTime: true,
+        startDateTime: allDayStart,
+        endDateTime: allDayStart.add(const Duration(hours: 1)),
+        isAllDay: true,
+        isRecurring: false,
+        createdAt: allDayCreatedAt,
+      ),
+      v1.TasksData(
+        id: 'valid-timed',
+        title: 'Valid timed todo',
+        isCompleted: true,
+        hasTime: true,
+        startDateTime: validTimedStart,
+        endDateTime: validTimedEnd,
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: validTimedCreatedAt,
+      ),
+      v1.TasksData(
+        id: 'malformed-timed',
+        title: 'Malformed timed todo',
+        isCompleted: false,
+        hasTime: true,
+        startDateTime: malformedStart,
+        endDateTime: malformedEnd,
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: malformedCreatedAt,
+      ),
+    ];
+    final expectedNewTasksData = <v2.TasksData>[
+      v2.TasksData(
+        id: 'completed-all-day',
+        title: 'Completed all-day event',
+        kind: 'event',
+        targetDate: _localMidnight(allDayStart),
+        isCompleted: false,
+        hasTime: false,
+        isAllDay: true,
+        isRecurring: false,
+        createdAt: allDayCreatedAt.toLocal(),
+      ),
+      v2.TasksData(
+        id: 'valid-timed',
+        title: 'Valid timed todo',
+        kind: 'todo',
+        targetDate: _localMidnight(validTimedStart),
+        isCompleted: true,
+        hasTime: true,
+        startDateTime: validTimedStart.toLocal(),
+        endDateTime: validTimedEnd.toLocal(),
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: validTimedCreatedAt.toLocal(),
+      ),
+      v2.TasksData(
+        id: 'malformed-timed',
+        title: 'Malformed timed todo',
+        kind: 'todo',
+        targetDate: _localMidnight(malformedStart),
+        isCompleted: false,
+        hasTime: false,
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: malformedCreatedAt.toLocal(),
+      ),
+    ];
 
     await verifier.testWithDataIntegrity(
       oldVersion: 1,
@@ -65,10 +133,20 @@ void main() {
         batch.insertAll(oldDb.tasks, oldTasksData);
       },
       validateItems: (newDb) async {
-        expect(expectedNewCategoriesData,
-            await newDb.select(newDb.categories).get());
-        expect(expectedNewTasksData, await newDb.select(newDb.tasks).get());
+        expect(
+          await newDb.select(newDb.categories).get(),
+          unorderedEquals(expectedNewCategoriesData),
+        );
+        expect(
+          await newDb.select(newDb.tasks).get(),
+          unorderedEquals(expectedNewTasksData),
+        );
       },
     );
   });
+}
+
+DateTime _localMidnight(DateTime value) {
+  final local = value.toLocal();
+  return DateTime(local.year, local.month, local.day);
 }
