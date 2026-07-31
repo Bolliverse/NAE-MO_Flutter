@@ -39,10 +39,10 @@ class AuthSessionRepositoryImpl implements AuthSessionRepository {
   ) async {
     try {
       return success(await operation());
-    } on CacheException catch (exception) {
-      return fail(CacheFailure(exception.message));
+    } on AuthException catch (exception) {
+      return fail(AuthFailure(exception.message));
     } on Object {
-      return fail(const CacheFailure());
+      return fail(const AuthFailure());
     }
   }
 }

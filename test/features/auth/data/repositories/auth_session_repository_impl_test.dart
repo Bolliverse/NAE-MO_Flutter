@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nae_mo/core/errors/app_exception.dart';
+import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/features/auth/data/datasources/auth_session_remote_data_source.dart';
 import 'package:nae_mo/features/auth/data/models/remote_auth_user.dart';
 import 'package:nae_mo/features/auth/data/repositories/auth_session_repository_impl.dart';
@@ -68,6 +70,24 @@ void main() {
     expect(result.failure, isNull);
     expect(result.data, isA<UnauthenticatedSession>());
   });
+
+  test('maps AuthException to AuthFailure', () async {
+    remoteDataSource.exception = const AuthException('provider failed');
+
+    final result = await repository.signIn(AuthProviderType.apple);
+
+    expect(result.data, isNull);
+    expect(result.failure, const AuthFailure('provider failed'));
+  });
+
+  test('maps an unexpected exception to the generic AuthFailure', () async {
+    remoteDataSource.exception = StateError('unexpected');
+
+    final result = await repository.restoreSession();
+
+    expect(result.data, isNull);
+    expect(result.failure, const AuthFailure());
+  });
 }
 
 class _FakeAuthSessionRemoteDataSource implements AuthSessionRemoteDataSource {
@@ -75,18 +95,27 @@ class _FakeAuthSessionRemoteDataSource implements AuthSessionRemoteDataSource {
   RemoteAuthUser? signedInUser;
   AuthProviderType? requestedProvider;
   int signOutCalls = 0;
+  Object? exception;
 
   @override
-  Future<RemoteAuthUser?> restoreSession() async => restoredUser;
+  Future<RemoteAuthUser?> restoreSession() async {
+    final error = exception;
+    if (error != null) throw error;
+    return restoredUser;
+  }
 
   @override
   Future<RemoteAuthUser?> signIn(AuthProviderType provider) async {
+    final error = exception;
+    if (error != null) throw error;
     requestedProvider = provider;
     return signedInUser;
   }
 
   @override
   Future<void> signOut() async {
+    final error = exception;
+    if (error != null) throw error;
     signOutCalls++;
   }
 }
