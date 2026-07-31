@@ -63,8 +63,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '485430213995',
     projectId: 'naem-o',
     storageBucket: 'naem-o.firebasestorage.app',
-    androidClientId: '485430213995-ct7n7h0t24agcrt6su8kvq9gkk8du8lo.apps.googleusercontent.com',
-    iosClientId: '485430213995-ccopd7sedfsss28reruuvk15cnl3eu53.apps.googleusercontent.com',
+    androidClientId:
+        '485430213995-ct7n7h0t24agcrt6su8kvq9gkk8du8lo.apps.googleusercontent.com',
+    iosClientId:
+        '485430213995-ccopd7sedfsss28reruuvk15cnl3eu53.apps.googleusercontent.com',
     iosBundleId: 'com.bolliverse.todo.todoProject',
   );
 }
