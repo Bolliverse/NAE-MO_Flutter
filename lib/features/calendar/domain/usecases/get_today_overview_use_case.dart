@@ -19,8 +19,7 @@ class GetTodayOverviewUseCase {
   );
 
   Future<Result<TodayOverview>> call(DateTime selectedDate) async {
-    final local = selectedDate.toLocal();
-    final date = DateTime(local.year, local.month, local.day);
+    final date = _localDate(selectedDate);
 
     final tasksResult = await _taskRepository.getTasksForTodayOverview(date);
     final tasksFailure = tasksResult.failure;
@@ -48,13 +47,14 @@ class GetTodayOverviewUseCase {
         task: task,
         category: categoriesById[task.categoryId],
       );
-      final isSelectedDate = task.targetDate.isAtSameMomentAs(date);
+      final targetDate = _localDate(task.targetDate);
+      final isSelectedDate = targetDate.isAtSameMomentAs(date);
 
       if (task.isTodo && task.isCompleted && isSelectedDate) {
         completedTodos.add(entry);
       } else if (task.isTodo &&
           !task.isCompleted &&
-          task.targetDate.isBefore(date)) {
+          targetDate.isBefore(date)) {
         overdueTodos.add(entry);
       } else if (task.isEvent && task.isAllDay && isSelectedDate) {
         allDayEvents.add(entry);
@@ -74,18 +74,25 @@ class GetTodayOverviewUseCase {
     return success(
       TodayOverview(
         date: date,
-        overdueTodos: overdueTodos,
-        allDayEvents: allDayEvents,
-        timelineItems: timelineItems,
-        untimedTodos: untimedTodos,
-        completedTodos: completedTodos,
+        overdueTodos: List<TodayEntry>.unmodifiable(overdueTodos),
+        allDayEvents: List<TodayEntry>.unmodifiable(allDayEvents),
+        timelineItems: List<TodayEntry>.unmodifiable(timelineItems),
+        untimedTodos: List<TodayEntry>.unmodifiable(untimedTodos),
+        completedTodos: List<TodayEntry>.unmodifiable(completedTodos),
       ),
     );
   }
 }
 
+DateTime _localDate(DateTime value) {
+  final local = value.toLocal();
+  return DateTime(local.year, local.month, local.day);
+}
+
 int _compareOverdue(TodayEntry left, TodayEntry right) {
-  final targetDate = left.task.targetDate.compareTo(right.task.targetDate);
+  final targetDate = _localDate(
+    left.task.targetDate,
+  ).compareTo(_localDate(right.task.targetDate));
   if (targetDate != 0) return targetDate;
 
   return _compareByCreated(left, right);
