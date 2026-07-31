@@ -285,6 +285,22 @@ class $TaskTableTable extends TaskTable
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
       'title', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumnWithTypeConverter<TaskKind, String> kind =
+      GeneratedColumn<String>('kind', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant('todo'))
+          .withConverter<TaskKind>($TaskTableTable.$converterkind);
+  static const VerificationMeta _targetDateMeta =
+      const VerificationMeta('targetDate');
+  @override
+  late final GeneratedColumn<DateTime> targetDate = GeneratedColumn<DateTime>(
+      'target_date', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
   static const VerificationMeta _categoryIdMeta =
       const VerificationMeta('categoryId');
   @override
@@ -361,6 +377,8 @@ class $TaskTableTable extends TaskTable
   List<GeneratedColumn> get $columns => [
         id,
         title,
+        kind,
+        targetDate,
         categoryId,
         isCompleted,
         hasTime,
@@ -391,6 +409,13 @@ class $TaskTableTable extends TaskTable
           _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
     } else if (isInserting) {
       context.missing(_titleMeta);
+    }
+    context.handle(_kindMeta, const VerificationResult.success());
+    if (data.containsKey('target_date')) {
+      context.handle(
+          _targetDateMeta,
+          targetDate.isAcceptableOrUnknown(
+              data['target_date']!, _targetDateMeta));
     }
     if (data.containsKey('category_id')) {
       context.handle(
@@ -453,6 +478,10 @@ class $TaskTableTable extends TaskTable
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      kind: $TaskTableTable.$converterkind.fromSql(attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!),
+      targetDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}target_date'])!,
       categoryId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}category_id']),
       isCompleted: attachedDatabase.typeMapping
@@ -478,11 +507,16 @@ class $TaskTableTable extends TaskTable
   $TaskTableTable createAlias(String alias) {
     return $TaskTableTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<TaskKind, String, String> $converterkind =
+      const EnumNameConverter<TaskKind>(TaskKind.values);
 }
 
 class TaskTableData extends DataClass implements Insertable<TaskTableData> {
   final String id;
   final String title;
+  final TaskKind kind;
+  final DateTime targetDate;
   final String? categoryId;
   final bool isCompleted;
   final bool hasTime;
@@ -495,6 +529,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
   const TaskTableData(
       {required this.id,
       required this.title,
+      required this.kind,
+      required this.targetDate,
       this.categoryId,
       required this.isCompleted,
       required this.hasTime,
@@ -509,6 +545,11 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
+    {
+      map['kind'] =
+          Variable<String>($TaskTableTable.$converterkind.toSql(kind));
+    }
+    map['target_date'] = Variable<DateTime>(targetDate);
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
     }
@@ -533,6 +574,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return TaskTableCompanion(
       id: Value(id),
       title: Value(title),
+      kind: Value(kind),
+      targetDate: Value(targetDate),
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
@@ -559,6 +602,9 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return TaskTableData(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
+      kind: $TaskTableTable.$converterkind
+          .fromJson(serializer.fromJson<String>(json['kind'])),
+      targetDate: serializer.fromJson<DateTime>(json['targetDate']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       hasTime: serializer.fromJson<bool>(json['hasTime']),
@@ -576,6 +622,9 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
+      'kind': serializer
+          .toJson<String>($TaskTableTable.$converterkind.toJson(kind)),
+      'targetDate': serializer.toJson<DateTime>(targetDate),
       'categoryId': serializer.toJson<String?>(categoryId),
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'hasTime': serializer.toJson<bool>(hasTime),
@@ -591,6 +640,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
   TaskTableData copyWith(
           {String? id,
           String? title,
+          TaskKind? kind,
+          DateTime? targetDate,
           Value<String?> categoryId = const Value.absent(),
           bool? isCompleted,
           bool? hasTime,
@@ -603,6 +654,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
       TaskTableData(
         id: id ?? this.id,
         title: title ?? this.title,
+        kind: kind ?? this.kind,
+        targetDate: targetDate ?? this.targetDate,
         categoryId: categoryId.present ? categoryId.value : this.categoryId,
         isCompleted: isCompleted ?? this.isCompleted,
         hasTime: hasTime ?? this.hasTime,
@@ -619,6 +672,9 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return TaskTableData(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      targetDate:
+          data.targetDate.present ? data.targetDate.value : this.targetDate,
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       isCompleted:
@@ -644,6 +700,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return (StringBuffer('TaskTableData(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('kind: $kind, ')
+          ..write('targetDate: $targetDate, ')
           ..write('categoryId: $categoryId, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('hasTime: $hasTime, ')
@@ -661,6 +719,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
   int get hashCode => Object.hash(
       id,
       title,
+      kind,
+      targetDate,
       categoryId,
       isCompleted,
       hasTime,
@@ -676,6 +736,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
       (other is TaskTableData &&
           other.id == this.id &&
           other.title == this.title &&
+          other.kind == this.kind &&
+          other.targetDate == this.targetDate &&
           other.categoryId == this.categoryId &&
           other.isCompleted == this.isCompleted &&
           other.hasTime == this.hasTime &&
@@ -690,6 +752,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
 class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   final Value<String> id;
   final Value<String> title;
+  final Value<TaskKind> kind;
+  final Value<DateTime> targetDate;
   final Value<String?> categoryId;
   final Value<bool> isCompleted;
   final Value<bool> hasTime;
@@ -703,6 +767,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   const TaskTableCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.targetDate = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.hasTime = const Value.absent(),
@@ -717,6 +783,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   TaskTableCompanion.insert({
     required String id,
     required String title,
+    this.kind = const Value.absent(),
+    this.targetDate = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.hasTime = const Value.absent(),
@@ -732,6 +800,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   static Insertable<TaskTableData> custom({
     Expression<String>? id,
     Expression<String>? title,
+    Expression<String>? kind,
+    Expression<DateTime>? targetDate,
     Expression<String>? categoryId,
     Expression<bool>? isCompleted,
     Expression<bool>? hasTime,
@@ -746,6 +816,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (kind != null) 'kind': kind,
+      if (targetDate != null) 'target_date': targetDate,
       if (categoryId != null) 'category_id': categoryId,
       if (isCompleted != null) 'is_completed': isCompleted,
       if (hasTime != null) 'has_time': hasTime,
@@ -762,6 +834,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   TaskTableCompanion copyWith(
       {Value<String>? id,
       Value<String>? title,
+      Value<TaskKind>? kind,
+      Value<DateTime>? targetDate,
       Value<String?>? categoryId,
       Value<bool>? isCompleted,
       Value<bool>? hasTime,
@@ -775,6 +849,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     return TaskTableCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      kind: kind ?? this.kind,
+      targetDate: targetDate ?? this.targetDate,
       categoryId: categoryId ?? this.categoryId,
       isCompleted: isCompleted ?? this.isCompleted,
       hasTime: hasTime ?? this.hasTime,
@@ -796,6 +872,13 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (kind.present) {
+      map['kind'] =
+          Variable<String>($TaskTableTable.$converterkind.toSql(kind.value));
+    }
+    if (targetDate.present) {
+      map['target_date'] = Variable<DateTime>(targetDate.value);
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
@@ -835,6 +918,8 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     return (StringBuffer('TaskTableCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('kind: $kind, ')
+          ..write('targetDate: $targetDate, ')
           ..write('categoryId: $categoryId, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('hasTime: $hasTime, ')
@@ -1024,6 +1109,8 @@ typedef $$CategoryTableTableProcessedTableManager = ProcessedTableManager<
 typedef $$TaskTableTableCreateCompanionBuilder = TaskTableCompanion Function({
   required String id,
   required String title,
+  Value<TaskKind> kind,
+  Value<DateTime> targetDate,
   Value<String?> categoryId,
   Value<bool> isCompleted,
   Value<bool> hasTime,
@@ -1038,6 +1125,8 @@ typedef $$TaskTableTableCreateCompanionBuilder = TaskTableCompanion Function({
 typedef $$TaskTableTableUpdateCompanionBuilder = TaskTableCompanion Function({
   Value<String> id,
   Value<String> title,
+  Value<TaskKind> kind,
+  Value<DateTime> targetDate,
   Value<String?> categoryId,
   Value<bool> isCompleted,
   Value<bool> hasTime,
@@ -1064,6 +1153,14 @@ class $$TaskTableTableFilterComposer
 
   ColumnFilters<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<TaskKind, TaskKind, String> get kind =>
+      $composableBuilder(
+          column: $table.kind,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<DateTime> get targetDate => $composableBuilder(
+      column: $table.targetDate, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get categoryId => $composableBuilder(
       column: $table.categoryId, builder: (column) => ColumnFilters(column));
@@ -1109,6 +1206,12 @@ class $$TaskTableTableOrderingComposer
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get targetDate => $composableBuilder(
+      column: $table.targetDate, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get categoryId => $composableBuilder(
       column: $table.categoryId, builder: (column) => ColumnOrderings(column));
 
@@ -1153,6 +1256,12 @@ class $$TaskTableTableAnnotationComposer
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TaskKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get targetDate => $composableBuilder(
+      column: $table.targetDate, builder: (column) => column);
 
   GeneratedColumn<String> get categoryId => $composableBuilder(
       column: $table.categoryId, builder: (column) => column);
@@ -1210,6 +1319,8 @@ class $$TaskTableTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> title = const Value.absent(),
+            Value<TaskKind> kind = const Value.absent(),
+            Value<DateTime> targetDate = const Value.absent(),
             Value<String?> categoryId = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
             Value<bool> hasTime = const Value.absent(),
@@ -1224,6 +1335,8 @@ class $$TaskTableTableTableManager extends RootTableManager<
               TaskTableCompanion(
             id: id,
             title: title,
+            kind: kind,
+            targetDate: targetDate,
             categoryId: categoryId,
             isCompleted: isCompleted,
             hasTime: hasTime,
@@ -1238,6 +1351,8 @@ class $$TaskTableTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String id,
             required String title,
+            Value<TaskKind> kind = const Value.absent(),
+            Value<DateTime> targetDate = const Value.absent(),
             Value<String?> categoryId = const Value.absent(),
             Value<bool> isCompleted = const Value.absent(),
             Value<bool> hasTime = const Value.absent(),
@@ -1252,6 +1367,8 @@ class $$TaskTableTableTableManager extends RootTableManager<
               TaskTableCompanion.insert(
             id: id,
             title: title,
+            kind: kind,
+            targetDate: targetDate,
             categoryId: categoryId,
             isCompleted: isCompleted,
             hasTime: hasTime,
