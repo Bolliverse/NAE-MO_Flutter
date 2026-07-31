@@ -42,13 +42,14 @@ void main() {
     final state = await container.read(authViewModelProvider.future);
 
     final session = state.session as AuthenticatedSession;
+    expect(session.uid, 'apple-user');
     expect(session.provider, AuthProviderType.apple);
   });
 
   test('finishes restoration as unauthenticated when persistence fails',
       () async {
     final repository = _FakeAuthSessionRepository(
-      restoreResult: fail(const CacheFailure('restore failed')),
+      restoreResult: fail(const AuthFailure('restore failed')),
     );
     final container = _createContainer(repository);
 
@@ -93,12 +94,31 @@ void main() {
     expect(signedIn.isSubmitting, isFalse);
     expect(signedIn.pendingProvider, isNull);
     final session = signedIn.session as AuthenticatedSession;
+    expect(session.uid, 'google-user');
     expect(session.provider, AuthProviderType.google);
+  });
+
+  test('treats cancelled sign-in as an error-free login state', () async {
+    final repository = _FakeAuthSessionRepository(
+      signInResult: success(const UnauthenticatedSession()),
+    );
+    final container = _createContainer(repository);
+    await container.read(authViewModelProvider.future);
+
+    await container
+        .read(authViewModelProvider.notifier)
+        .signIn(AuthProviderType.google);
+
+    final state = container.read(authViewModelProvider).requireValue;
+    expect(state.session, isA<UnauthenticatedSession>());
+    expect(state.isSubmitting, isFalse);
+    expect(state.pendingProvider, isNull);
+    expect(state.errorMessage, isNull);
   });
 
   test('keeps the old session when sign-in fails', () async {
     final repository = _FakeAuthSessionRepository(
-      signInResult: fail(const CacheFailure('로그인 저장 실패')),
+      signInResult: fail(const AuthFailure('로그인 실패')),
     );
     final container = _createContainer(repository);
     await container.read(authViewModelProvider.future);
@@ -110,7 +130,7 @@ void main() {
     final state = container.read(authViewModelProvider).requireValue;
     expect(state.session, isA<UnauthenticatedSession>());
     expect(state.isSubmitting, isFalse);
-    expect(state.errorMessage, '로그인 저장 실패');
+    expect(state.errorMessage, '로그인 실패');
   });
 
   test('signs out to an unauthenticated session', () async {
@@ -141,7 +161,7 @@ void main() {
           provider: AuthProviderType.apple,
         ),
       ),
-      signOutResult: fail(const CacheFailure('로그아웃 저장 실패')),
+      signOutResult: fail(const AuthFailure('로그아웃 실패')),
     );
     final container = _createContainer(repository);
     await container.read(authViewModelProvider.future);
@@ -152,7 +172,25 @@ void main() {
     final session = state.session as AuthenticatedSession;
     expect(session.provider, AuthProviderType.apple);
     expect(state.isSubmitting, isFalse);
-    expect(state.errorMessage, '로그아웃 저장 실패');
+    expect(state.errorMessage, '로그아웃 실패');
+  });
+
+  test('uses the auth fallback when sign-in throws unexpectedly', () async {
+    final repository = _FakeAuthSessionRepository(
+      onSignIn: (_) => throw StateError('unexpected'),
+    );
+    final container = _createContainer(repository);
+    await container.read(authViewModelProvider.future);
+
+    await container
+        .read(authViewModelProvider.notifier)
+        .signIn(AuthProviderType.google);
+
+    final state = container.read(authViewModelProvider).requireValue;
+    expect(
+      state.errorMessage,
+      '로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    );
   });
 }
 

@@ -120,7 +120,7 @@ void main() {
   testWidgets('failed login remains on login and shows the error',
       (tester) async {
     final authRepository = _FakeAuthSessionRepository(
-      signInFailure: const CacheFailure('로그인 저장 실패'),
+      signInFailure: const AuthFailure('로그인 실패'),
     );
     await _pumpApp(tester, authRepository);
 
@@ -128,14 +128,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('NAE MO'), findsOneWidget);
-    expect(find.text('로그인 저장 실패'), findsOneWidget);
+    expect(find.text('로그인 실패'), findsOneWidget);
+  });
+
+  testWidgets('cancelled Google login stays ready without an error',
+      (tester) async {
+    final authRepository = _FakeAuthSessionRepository(cancelSignIn: true);
+    final semantics = tester.ensureSemantics();
+    await _pumpApp(tester, authRepository);
+
+    await tester.tap(find.byKey(const Key('googleSignInButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Task Dock'), findsNothing);
+    expect(find.text('NAE MO'), findsOneWidget);
+    expect(
+      find.text('로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.'),
+      findsNothing,
+    );
+    expect(
+      tester.getSemantics(find.byKey(const Key('googleSignInButton'))),
+      matchesSemantics(
+        label: 'Google로 로그인',
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: true,
+      ),
+    );
+    semantics.dispose();
   });
 
   testWidgets('failed logout stays on the calendar and shows a SnackBar',
       (tester) async {
     final authRepository = _FakeAuthSessionRepository(
       storedProvider: AuthProviderType.apple,
-      signOutFailure: const CacheFailure('로그아웃 저장 실패'),
+      signOutFailure: const AuthFailure('로그아웃 실패'),
     );
     await _pumpApp(tester, authRepository);
 
@@ -143,7 +170,7 @@ void main() {
 
     expect(authRepository.storedProvider, AuthProviderType.apple);
     expect(find.text('Task Dock'), findsOneWidget);
-    expect(find.text('로그아웃 저장 실패'), findsOneWidget);
+    expect(find.text('로그아웃 실패'), findsOneWidget);
   });
 
   testWidgets('mobile calendar moves view switching into the overflow menu',
@@ -282,6 +309,7 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
   final Completer<Result<AuthSession>>? signInCompleter;
   final Failure? signInFailure;
   final Failure? signOutFailure;
+  final bool cancelSignIn;
 
   int signInCalls = 0;
 
@@ -291,6 +319,7 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
     this.signInCompleter,
     this.signInFailure,
     this.signOutFailure,
+    this.cancelSignIn = false,
   });
 
   @override
@@ -305,12 +334,14 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
     signInCalls++;
     final completer = signInCompleter;
     final result = completer == null
-        ? signInFailure == null
-            ? success<AuthSession>(AuthenticatedSession(
-                uid: '${provider.name}-user',
-                provider: provider,
-              ))
-            : fail<AuthSession>(signInFailure!)
+        ? cancelSignIn
+            ? success<AuthSession>(const UnauthenticatedSession())
+            : signInFailure == null
+                ? success<AuthSession>(AuthenticatedSession(
+                    uid: '${provider.name}-user',
+                    provider: provider,
+                  ))
+                : fail<AuthSession>(signInFailure!)
         : await completer.future;
 
     if (result.data case AuthenticatedSession()) {
