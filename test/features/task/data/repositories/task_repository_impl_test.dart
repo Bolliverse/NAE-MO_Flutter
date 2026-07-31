@@ -209,6 +209,7 @@ class _FakeTaskLocalDataSource implements TaskLocalDataSource {
   CacheException? getForTodayOverviewException;
   CacheException? insertException;
 
+  @override
   Future<TaskTableData> getById(String id) async {
     requestedId = id;
     final exception = getByIdException;
@@ -216,6 +217,7 @@ class _FakeTaskLocalDataSource implements TaskLocalDataSource {
     return row!;
   }
 
+  @override
   Future<List<TaskTableData>> getForTodayOverview(DateTime selectedDate) async {
     requestedOverviewDate = selectedDate;
     final exception = getForTodayOverviewException;
