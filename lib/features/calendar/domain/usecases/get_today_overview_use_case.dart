@@ -4,7 +4,6 @@ import 'package:nae_mo/features/category/data/repositories/category_repository_p
 import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
 import 'package:nae_mo/features/task/data/repositories/task_repository_provider.dart';
-import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/repositories/task_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
