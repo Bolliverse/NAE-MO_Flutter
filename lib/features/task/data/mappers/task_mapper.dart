@@ -7,8 +7,8 @@ class TaskMapper {
   Task toEntity(TaskTableData data) => Task(
         id: data.id,
         title: data.title,
-        kind: data.isAllDay ? TaskKind.event : TaskKind.todo,
-        targetDate: _dateOnly(data.startDateTime ?? data.createdAt),
+        kind: data.kind,
+        targetDate: data.targetDate,
         categoryId: data.categoryId,
         isCompleted: data.isCompleted,
         hasTime: data.hasTime,
@@ -22,9 +22,4 @@ class TaskMapper {
 
   List<Task> toEntityList(List<TaskTableData> dataList) =>
       dataList.map(toEntity).toList();
-}
-
-DateTime _dateOnly(DateTime date) {
-  final local = date.toLocal();
-  return DateTime(local.year, local.month, local.day);
 }
