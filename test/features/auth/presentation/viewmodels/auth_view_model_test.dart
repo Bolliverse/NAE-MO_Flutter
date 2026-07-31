@@ -31,7 +31,10 @@ void main() {
   test('restores an authenticated session', () async {
     final repository = _FakeAuthSessionRepository(
       restoreResult: success(
-        const AuthenticatedSession(AuthProviderType.apple),
+        const AuthenticatedSession(
+          uid: 'apple-user',
+          provider: AuthProviderType.apple,
+        ),
       ),
     );
     final container = _createContainer(repository);
@@ -77,7 +80,12 @@ void main() {
     expect(repository.signInCalls, 1);
 
     signInCompleter.complete(
-      success(const AuthenticatedSession(AuthProviderType.google)),
+      success(
+        const AuthenticatedSession(
+          uid: 'google-user',
+          provider: AuthProviderType.google,
+        ),
+      ),
     );
     await pendingSignIn;
 
@@ -108,7 +116,10 @@ void main() {
   test('signs out to an unauthenticated session', () async {
     final repository = _FakeAuthSessionRepository(
       restoreResult: success(
-        const AuthenticatedSession(AuthProviderType.google),
+        const AuthenticatedSession(
+          uid: 'google-user',
+          provider: AuthProviderType.google,
+        ),
       ),
     );
     final container = _createContainer(repository);
@@ -125,7 +136,10 @@ void main() {
   test('keeps the authenticated session when sign-out fails', () async {
     final repository = _FakeAuthSessionRepository(
       restoreResult: success(
-        const AuthenticatedSession(AuthProviderType.apple),
+        const AuthenticatedSession(
+          uid: 'apple-user',
+          provider: AuthProviderType.apple,
+        ),
       ),
       signOutResult: fail(const CacheFailure('로그아웃 저장 실패')),
     );
@@ -173,7 +187,10 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
             success<AuthSession>(const UnauthenticatedSession()),
         signInResult = signInResult ??
             success<AuthSession>(
-              const AuthenticatedSession(AuthProviderType.google),
+              const AuthenticatedSession(
+                uid: 'google-user',
+                provider: AuthProviderType.google,
+              ),
             ),
         signOutResult = signOutResult ??
             success<AuthSession>(const UnauthenticatedSession());

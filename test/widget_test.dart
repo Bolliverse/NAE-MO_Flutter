@@ -78,7 +78,10 @@ void main() {
 
     restoreCompleter.complete(
       success(
-        const AuthenticatedSession(AuthProviderType.google),
+        const AuthenticatedSession(
+          uid: 'google-user',
+          provider: AuthProviderType.google,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -228,7 +231,10 @@ void main() {
 
     signInCompleter.complete(
       success(
-        const AuthenticatedSession(AuthProviderType.google),
+        const AuthenticatedSession(
+          uid: 'google-user',
+          provider: AuthProviderType.google,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -300,7 +306,10 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
     final completer = signInCompleter;
     final result = completer == null
         ? signInFailure == null
-            ? success<AuthSession>(AuthenticatedSession(provider))
+            ? success<AuthSession>(AuthenticatedSession(
+                uid: '${provider.name}-user',
+                provider: provider,
+              ))
             : fail<AuthSession>(signInFailure!)
         : await completer.future;
 
@@ -321,7 +330,10 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
   AuthSession _sessionFor(AuthProviderType? provider) {
     return provider == null
         ? const UnauthenticatedSession()
-        : AuthenticatedSession(provider);
+        : AuthenticatedSession(
+            uid: '${provider.name}-user',
+            provider: provider,
+          );
   }
 }
 

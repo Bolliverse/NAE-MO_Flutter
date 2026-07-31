@@ -1,124 +1,92 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nae_mo/core/errors/app_exception.dart';
-import 'package:nae_mo/core/errors/failure.dart';
-import 'package:nae_mo/features/auth/data/datasources/auth_session_local_data_source.dart';
+import 'package:nae_mo/features/auth/data/datasources/auth_session_remote_data_source.dart';
+import 'package:nae_mo/features/auth/data/models/remote_auth_user.dart';
 import 'package:nae_mo/features/auth/data/repositories/auth_session_repository_impl.dart';
 import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
 
 void main() {
-  late _FakeAuthSessionLocalDataSource localDataSource;
+  late _FakeAuthSessionRemoteDataSource remoteDataSource;
   late AuthSessionRepositoryImpl repository;
 
   setUp(() {
-    localDataSource = _FakeAuthSessionLocalDataSource();
-    repository = AuthSessionRepositoryImpl(localDataSource);
+    remoteDataSource = _FakeAuthSessionRemoteDataSource();
+    repository = AuthSessionRepositoryImpl(remoteDataSource);
   });
 
   group('restoreSession', () {
-    test('returns unauthenticated when no provider is stored', () async {
+    test('returns unauthenticated when Firebase has no current user', () async {
       final result = await repository.restoreSession();
 
       expect(result.failure, isNull);
       expect(result.data, isA<UnauthenticatedSession>());
     });
 
-    for (final provider in AuthProviderType.values) {
-      test('restores an authenticated ${provider.name} session', () async {
-        localDataSource.storedProvider = provider;
-
-        final result = await repository.restoreSession();
-
-        expect(result.failure, isNull);
-        final session = result.data as AuthenticatedSession;
-        expect(session.provider, provider);
-      });
-    }
-
-    test('maps a cache exception to CacheFailure', () async {
-      localDataSource.readException = const CacheException('read failed');
+    test('restores uid and provider from the remote user', () async {
+      remoteDataSource.restoredUser = const RemoteAuthUser(
+        uid: 'firebase-user-1',
+        provider: AuthProviderType.apple,
+      );
 
       final result = await repository.restoreSession();
 
-      expect(result.data, isNull);
-      expect(result.failure, const CacheFailure('read failed'));
+      final session = result.data as AuthenticatedSession;
+      expect(session.uid, 'firebase-user-1');
+      expect(session.provider, AuthProviderType.apple);
     });
   });
 
   group('signIn', () {
-    test('persists the provider before returning an authenticated session',
+    test('maps the signed-in remote user to an authenticated session',
         () async {
+      remoteDataSource.signedInUser = const RemoteAuthUser(
+        uid: 'google-user',
+        provider: AuthProviderType.google,
+      );
+
       final result = await repository.signIn(AuthProviderType.google);
 
-      expect(localDataSource.writeCalls, 1);
-      expect(localDataSource.storedProvider, AuthProviderType.google);
+      expect(remoteDataSource.requestedProvider, AuthProviderType.google);
       final session = result.data as AuthenticatedSession;
+      expect(session.uid, 'google-user');
       expect(session.provider, AuthProviderType.google);
     });
 
-    test('does not report success when persistence fails', () async {
-      localDataSource.writeException = const CacheException('write failed');
+    test('treats a cancelled sign-in as unauthenticated success', () async {
+      remoteDataSource.signedInUser = null;
 
-      final result = await repository.signIn(AuthProviderType.apple);
+      final result = await repository.signIn(AuthProviderType.google);
 
-      expect(result.data, isNull);
-      expect(result.failure, const CacheFailure('write failed'));
-      expect(localDataSource.storedProvider, isNull);
+      expect(result.failure, isNull);
+      expect(result.data, isA<UnauthenticatedSession>());
     });
   });
 
-  group('signOut', () {
-    test('clears the provider before returning unauthenticated', () async {
-      localDataSource.storedProvider = AuthProviderType.apple;
+  test('signOut delegates remotely before returning unauthenticated', () async {
+    final result = await repository.signOut();
 
-      final result = await repository.signOut();
-
-      expect(localDataSource.clearCalls, 1);
-      expect(localDataSource.storedProvider, isNull);
-      expect(result.data, isA<UnauthenticatedSession>());
-    });
-
-    test('keeps the session stored when clearing fails', () async {
-      localDataSource
-        ..storedProvider = AuthProviderType.apple
-        ..clearException = const CacheException('clear failed');
-
-      final result = await repository.signOut();
-
-      expect(result.data, isNull);
-      expect(result.failure, const CacheFailure('clear failed'));
-      expect(localDataSource.storedProvider, AuthProviderType.apple);
-    });
+    expect(remoteDataSource.signOutCalls, 1);
+    expect(result.failure, isNull);
+    expect(result.data, isA<UnauthenticatedSession>());
   });
 }
 
-class _FakeAuthSessionLocalDataSource implements AuthSessionLocalDataSource {
-  AuthProviderType? storedProvider;
-  CacheException? readException;
-  CacheException? writeException;
-  CacheException? clearException;
-  int writeCalls = 0;
-  int clearCalls = 0;
+class _FakeAuthSessionRemoteDataSource implements AuthSessionRemoteDataSource {
+  RemoteAuthUser? restoredUser;
+  RemoteAuthUser? signedInUser;
+  AuthProviderType? requestedProvider;
+  int signOutCalls = 0;
 
   @override
-  Future<AuthProviderType?> readProvider() async {
-    final exception = readException;
-    if (exception != null) throw exception;
-    return storedProvider;
+  Future<RemoteAuthUser?> restoreSession() async => restoredUser;
+
+  @override
+  Future<RemoteAuthUser?> signIn(AuthProviderType provider) async {
+    requestedProvider = provider;
+    return signedInUser;
   }
 
   @override
-  Future<void> writeProvider(AuthProviderType provider) async {
-    writeCalls++;
-    final exception = writeException;
-    if (exception != null) throw exception;
-    storedProvider = provider;
-  }
-
-  @override
-  Future<void> clearProvider() async {
-    clearCalls++;
-    final exception = clearException;
-    if (exception != null) throw exception;
-    storedProvider = null;
+  Future<void> signOut() async {
+    signOutCalls++;
   }
 }
