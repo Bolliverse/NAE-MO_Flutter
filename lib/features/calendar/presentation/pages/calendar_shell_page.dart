@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/core/router/app_router.dart';
+import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
+import 'package:nae_mo/features/auth/presentation/viewmodels/auth_view_model.dart';
 
 enum _CalendarView { day, week, month }
+
+enum _CalendarMenuAction { signOut }
 
 class CalendarShellPage extends ConsumerWidget {
   final Widget child;
@@ -14,8 +18,24 @@ class CalendarShellPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedDate = ref.watch(selectedDateProvider);
+    final authState = ref.watch(authViewModelProvider).asData?.value;
     final location = GoRouterState.of(context).matchedLocation;
     final activeView = _activeView(location);
+
+    ref.listen(authViewModelProvider, (previous, next) {
+      final previousError = previous?.asData?.value.errorMessage;
+      final nextState = next.asData?.value;
+      final nextError = nextState?.errorMessage;
+      final isStillSignedIn = nextState?.session is AuthenticatedSession;
+
+      if (nextError != null && nextError != previousError && isStillSignedIn) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(nextError)),
+          );
+      }
+    });
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -31,15 +51,36 @@ class CalendarShellPage extends ConsumerWidget {
           onNext: () => ref.read(selectedDateProvider.notifier).addDays(
                 _daysToShift(activeView, forward: true),
               ),
-          onTodayTap: () =>
-              ref.read(selectedDateProvider.notifier).goToToday(),
+          onTodayTap: () => ref.read(selectedDateProvider.notifier).goToToday(),
         ),
         actions: [
           _ViewSwitcher(
             active: activeView,
             onChanged: (view) => _navigateTo(context, view),
           ),
-          const SizedBox(width: 8),
+          PopupMenuButton<_CalendarMenuAction>(
+            key: const Key('calendarMoreMenu'),
+            enabled: !(authState?.isSubmitting ?? false),
+            tooltip: '더보기',
+            onSelected: (action) {
+              if (action == _CalendarMenuAction.signOut) {
+                ref.read(authViewModelProvider.notifier).signOut();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _CalendarMenuAction.signOut,
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 12),
+                    Text('로그아웃'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: child,
@@ -116,12 +157,9 @@ class _DateNavigator extends StatelessWidget {
   }
 
   String _label() => switch (view) {
-        _CalendarView.day =>
-          DateFormat('M월 d일 (E)', 'ko').format(date),
-        _CalendarView.week =>
-          '${DateFormat('M월 d일', 'ko').format(date)} 주',
-        _CalendarView.month =>
-          DateFormat('yyyy년 M월', 'ko').format(date),
+        _CalendarView.day => DateFormat('M월 d일 (E)', 'ko').format(date),
+        _CalendarView.week => '${DateFormat('M월 d일', 'ko').format(date)} 주',
+        _CalendarView.month => DateFormat('yyyy년 M월', 'ko').format(date),
       };
 }
 
