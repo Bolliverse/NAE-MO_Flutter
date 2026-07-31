@@ -40,11 +40,14 @@ void main() {
     final allDayStart = DateTime.utc(2026, 1, 14, 22, 45);
     final validTimedStart = DateTime.utc(2026, 4, 20, 8);
     final validTimedEnd = DateTime.utc(2026, 4, 20, 9, 30);
+    final legacyUntimedStart = DateTime.utc(2026, 5, 11, 6);
+    final legacyUntimedEnd = DateTime.utc(2026, 5, 11, 7);
     final malformedStart = DateTime.utc(2026, 7, 3, 12);
     final malformedEnd = DateTime.utc(2026, 7, 3, 11, 30);
     final missingStartEnd = DateTime.utc(2026, 9, 8, 14);
     final allDayCreatedAt = DateTime.utc(2026, 1, 10);
     final validTimedCreatedAt = DateTime.utc(2026, 4, 1);
+    final legacyUntimedCreatedAt = DateTime.utc(2026, 5, 1);
     final malformedCreatedAt = DateTime.utc(2026, 7, 1);
     final missingStartCreatedAt = DateTime.utc(2026, 9, 7, 18, 30);
 
@@ -89,6 +92,17 @@ void main() {
         isRecurring: true,
         recurrenceRule: 'FREQ=WEEKLY',
         createdAt: validTimedCreatedAt,
+      ),
+      v1.TasksData(
+        id: 'legacy-untimed-with-range',
+        title: 'Legacy untimed todo with timestamps',
+        isCompleted: false,
+        hasTime: false,
+        startDateTime: legacyUntimedStart,
+        endDateTime: legacyUntimedEnd,
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: legacyUntimedCreatedAt,
       ),
       v1.TasksData(
         id: 'malformed-timed',
@@ -139,6 +153,19 @@ void main() {
         isRecurring: true,
         recurrenceRule: 'FREQ=WEEKLY',
         createdAt: validTimedCreatedAt.toLocal(),
+      ),
+      v2.TasksData(
+        id: 'legacy-untimed-with-range',
+        title: 'Legacy untimed todo with timestamps',
+        kind: 'todo',
+        targetDate: _localMidnight(legacyUntimedStart),
+        isCompleted: false,
+        hasTime: false,
+        startDateTime: null,
+        endDateTime: null,
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: legacyUntimedCreatedAt.toLocal(),
       ),
       v2.TasksData(
         id: 'malformed-timed',
