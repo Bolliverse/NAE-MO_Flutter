@@ -57,7 +57,8 @@ class AppDatabase extends _$AppDatabase {
                   schema.tasks.startDateTime:
                       const CustomExpression<DateTime>('''
                     CASE
-                      WHEN is_all_day = 1 OR start_date_time IS NULL
+                      WHEN is_all_day = 1 OR has_time = 0
+                        OR start_date_time IS NULL
                         OR end_date_time IS NULL
                         OR end_date_time <= start_date_time
                       THEN NULL ELSE start_date_time
@@ -65,7 +66,8 @@ class AppDatabase extends _$AppDatabase {
                   '''),
                   schema.tasks.endDateTime: const CustomExpression<DateTime>('''
                     CASE
-                      WHEN is_all_day = 1 OR start_date_time IS NULL
+                      WHEN is_all_day = 1 OR has_time = 0
+                        OR start_date_time IS NULL
                         OR end_date_time IS NULL
                         OR end_date_time <= start_date_time
                       THEN NULL ELSE end_date_time
