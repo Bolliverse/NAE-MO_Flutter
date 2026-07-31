@@ -9,6 +9,27 @@ void main() {
       expect(TaskValidator.validate(_draft()), isNull);
     });
 
+    test('returns null for a valid timed event', () {
+      final failure = TaskValidator.validate(
+        _draft(
+          kind: TaskKind.event,
+          hasTime: true,
+          startDateTime: DateTime(2026, 7, 31, 9),
+          endDateTime: DateTime(2026, 7, 31, 10),
+        ),
+      );
+
+      expect(failure, isNull);
+    });
+
+    test('returns null for a valid all-day event', () {
+      final failure = TaskValidator.validate(
+        _draft(kind: TaskKind.event, isAllDay: true),
+      );
+
+      expect(failure, isNull);
+    });
+
     group('target date', () {
       test('rejects a non-midnight target date', () {
         final failure = TaskValidator.validate(
@@ -100,6 +121,41 @@ void main() {
       );
 
       expect(failure, const ValidationFailure('종일 항목은 시간 범위를 사용할 수 없습니다.'));
+    });
+
+    test('returns the first failure when later scheduling rules overlap', () {
+      final cases = <({TaskDraft draft, String expectedMessage})>[
+        (
+          draft: _draft(
+            kind: TaskKind.event,
+            isAllDay: true,
+            hasTime: true,
+            startDateTime: DateTime(2026, 7, 31, 9),
+          ),
+          expectedMessage: '종일 항목은 시간 범위를 사용할 수 없습니다.',
+        ),
+        (
+          draft: _draft(
+            kind: TaskKind.event,
+            startDateTime: DateTime(2026, 7, 31, 9),
+          ),
+          expectedMessage: '일정은 시간 또는 종일 설정이 필요합니다.',
+        ),
+        (
+          draft: _draft(
+            startDateTime: DateTime(2026, 7, 31, 9),
+            endDateTime: DateTime(2026, 7, 31, 9),
+          ),
+          expectedMessage: '시간 미지정 항목은 시작과 종료 시각을 가질 수 없습니다.',
+        ),
+      ];
+
+      for (final validationCase in cases) {
+        expect(
+          TaskValidator.validate(validationCase.draft),
+          ValidationFailure(validationCase.expectedMessage),
+        );
+      }
     });
 
     test('rejects hasTime true without both timestamps', () {
