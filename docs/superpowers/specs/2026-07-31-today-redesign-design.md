@@ -82,8 +82,10 @@ UI 변경만 독립적으로 검토할 수 있게 하며, 첫 PR이 병합되면
 ## 4. Today 조회 계약
 
 새 `GetTodayOverviewUseCase`는 선택 날짜 하나를 받아 `TodayOverview`를 반환한다.
-Task 조회는 한 번의 일관된 흐름으로 수행하며 기존 Day/TaskDock ViewModel처럼
-서로 다른 상태 객체가 같은 데이터를 중복 조회하지 않는다.
+이 UseCase가 Task Repository와 Category Repository를 함께 사용해 항목과 선택적
+카테고리를 조합한다. Task 조회는 한 번의 일관된 흐름으로 수행하며 기존
+Day/TaskDock ViewModel처럼 서로 다른 상태 객체가 같은 데이터를 중복 조회하지
+않는다.
 
 `TodayOverview`는 다음 목록을 가진다.
 
@@ -102,8 +104,8 @@ Timeline에서 제거하고 완료 목록에만 둔다. 목록 정렬은 아래�
 - 시간 없는 투두: 카테고리 `sortOrder`, 생성 시각, ID 순
 - 완료 투두: 완료 여부 변경 시각이 현재 모델에 없으므로 생성 시각, ID 순
 
-카테고리 이름과 색상은 같은 `TodayViewModel`이 카테고리 UseCase를 통해 함께
-읽어 화면 전용 항목으로 조합한다. Task 목록 자체는 중복 조회하지 않는다.
+각 목록은 Task와 선택적 Category를 가진 `TodayEntry`로 구성한다. 존재하지 않는
+카테고리 ID는 카테고리 없음으로 안전하게 처리하며 정렬에서는 마지막에 둔다.
 
 ## 5. 화면 구조
 
