@@ -20,6 +20,16 @@ class TaskRepositoryImpl implements TaskRepository {
         _mapper = mapper;
 
   @override
+  Future<Result<Task>> getTaskById(String id) async {
+    try {
+      final data = await _dataSource.getById(id);
+      return success(_mapper.toEntity(data));
+    } on CacheException catch (e) {
+      return fail(CacheFailure(e.message));
+    }
+  }
+
+  @override
   Future<Result<List<Task>>> getTasksByDate(DateTime date) async {
     try {
       final data = await _dataSource.getByDate(date);
@@ -44,6 +54,18 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<Result<List<Task>>> getUnscheduledTasks() async {
     try {
       final data = await _dataSource.getUnscheduled();
+      return success(_mapper.toEntityList(data));
+    } on CacheException catch (e) {
+      return fail(CacheFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Result<List<Task>>> getTasksForTodayOverview(
+    DateTime selectedDate,
+  ) async {
+    try {
+      final data = await _dataSource.getForTodayOverview(selectedDate);
       return success(_mapper.toEntityList(data));
     } on CacheException catch (e) {
       return fail(CacheFailure(e.message));
