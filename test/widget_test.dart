@@ -145,8 +145,14 @@ void main() {
 
   testWidgets('mobile calendar moves view switching into the overflow menu',
       (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view
+      ..physicalSize = const Size(390, 844)
+      ..devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
     final authRepository = _FakeAuthSessionRepository(
       storedProvider: AuthProviderType.google,
     );
