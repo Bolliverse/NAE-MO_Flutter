@@ -22,13 +22,16 @@ class CalendarShellPage extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final activeView = _activeView(location);
     final isCompact = MediaQuery.sizeOf(context).width < 600;
-    final shiftBack = () => ref.read(selectedDateProvider.notifier).addDays(
+
+    void shiftBack() => ref.read(selectedDateProvider.notifier).addDays(
           _daysToShift(activeView, forward: false),
         );
-    final shiftForward = () => ref.read(selectedDateProvider.notifier).addDays(
+
+    void shiftForward() => ref.read(selectedDateProvider.notifier).addDays(
           _daysToShift(activeView, forward: true),
         );
-    final goToToday = () => ref.read(selectedDateProvider.notifier).goToToday();
+
+    void goToToday() => ref.read(selectedDateProvider.notifier).goToToday();
 
     ref.listen(authViewModelProvider, (previous, next) {
       final previousError = previous?.asData?.value.errorMessage;
