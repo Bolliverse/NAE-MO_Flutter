@@ -20,7 +20,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   final router = GoRouter(
     initialLocation: AppRoutes.bootstrap,
-    debugLogDiagnostics: true,
     refreshListenable: refreshNotifier,
     redirect: (context, state) => _authRedirect(
       ref.read(authViewModelProvider),
