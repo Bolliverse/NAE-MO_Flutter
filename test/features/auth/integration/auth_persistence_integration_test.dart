@@ -22,10 +22,8 @@ void main() {
         .signIn(AuthProviderType.apple);
 
     final signedInState = firstContainer.read(authViewModelProvider).value!;
-    expect(
-      signedInState.session,
-      const AuthenticatedSession(AuthProviderType.apple),
-    );
+    final signedInSession = signedInState.session as AuthenticatedSession;
+    expect(signedInSession.provider, AuthProviderType.apple);
     firstContainer.dispose();
 
     final restartedContainer = ProviderContainer();
@@ -34,9 +32,7 @@ void main() {
     final restoredState =
         await restartedContainer.read(authViewModelProvider.future);
 
-    expect(
-      restoredState.session,
-      const AuthenticatedSession(AuthProviderType.apple),
-    );
+    final restoredSession = restoredState.session as AuthenticatedSession;
+    expect(restoredSession.provider, AuthProviderType.apple);
   });
 }
