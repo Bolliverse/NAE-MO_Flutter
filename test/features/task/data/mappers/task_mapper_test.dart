@@ -74,6 +74,8 @@ TaskTableData _legacyRow({
     TaskTableData(
       id: 'task',
       title: 'Task',
+      kind: TaskKind.todo,
+      targetDate: DateTime(2000),
       isCompleted: false,
       hasTime: startDateTime != null,
       startDateTime: startDateTime,
