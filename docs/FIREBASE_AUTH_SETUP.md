@@ -21,14 +21,13 @@ Firebase 설정 파일은 앱 식별용 구성이다. Apple private key, Firebas
    flutter pub get
    ```
 
-2. Android Studio에서 Android SDK 35와 NDK `27.0.12077973`을 설치한다.
-3. Android 디버그 빌드를 확인한다.
+2. Android 디버그 빌드를 확인한다.
 
    ```shell
    flutter build apk --debug --no-pub
    ```
 
-4. iOS는 macOS/Xcode에서 CocoaPods 의존성을 설치한 뒤 Runner workspace를 연다.
+3. iOS는 macOS/Xcode에서 CocoaPods 의존성을 설치한 뒤 Runner workspace를 연다.
 
    ```shell
    cd ios
