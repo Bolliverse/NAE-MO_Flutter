@@ -58,7 +58,7 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   freezed: ^2.4.7
   json_serializable: ^6.8.0
-  retrofit_generator: ^8.2.1
+  retrofit_generator: ^9.1.7
   drift_dev: ^2.22.1
 
 flutter:

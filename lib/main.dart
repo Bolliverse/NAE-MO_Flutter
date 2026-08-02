@@ -9,12 +9,22 @@ import 'package:nae_mo/firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (supportsFirebaseAuth) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('Flutter Error: ${details.exception}\n${details.stack}');
+  };
+
+  try {
+    if (supportsFirebaseAuth) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+    await initializeDateFormatting('ko', null);
+  } catch (e, stack) {
+    debugPrint('Initialization error: $e\n$stack');
   }
-  await initializeDateFormatting('ko', null);
 
   runApp(
     const ProviderScope(
