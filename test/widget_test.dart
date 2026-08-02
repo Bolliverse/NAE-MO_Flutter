@@ -327,6 +327,10 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
 
 class _EmptyTaskRepository implements TaskRepository {
   @override
+  Future<Result<domain.Task>> getTaskById(String id) async =>
+      fail(const CacheFailure('Task not found'));
+
+  @override
   Future<Result<List<domain.Task>>> getTasksByDate(DateTime date) async =>
       success(const []);
 
@@ -339,6 +343,12 @@ class _EmptyTaskRepository implements TaskRepository {
 
   @override
   Future<Result<List<domain.Task>>> getUnscheduledTasks() async =>
+      success(const []);
+
+  @override
+  Future<Result<List<domain.Task>>> getTasksForTodayOverview(
+    DateTime selectedDate,
+  ) async =>
       success(const []);
 
   @override

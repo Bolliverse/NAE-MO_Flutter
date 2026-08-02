@@ -1,6 +1,10 @@
+enum TaskKind { event, todo }
+
 class Task {
   final String id;
   final String title;
+  final TaskKind kind;
+  final DateTime targetDate;
   final String? categoryId;
   final bool isCompleted;
   final bool hasTime;
@@ -14,6 +18,8 @@ class Task {
   const Task({
     required this.id,
     required this.title,
+    required this.kind,
+    required this.targetDate,
     this.categoryId,
     required this.isCompleted,
     required this.hasTime,
@@ -25,6 +31,8 @@ class Task {
     required this.createdAt,
   });
 
+  bool get isEvent => kind == TaskKind.event;
+  bool get isTodo => kind == TaskKind.todo;
   bool get isScheduled => hasTime && startDateTime != null;
   bool get isUnscheduled => !hasTime || startDateTime == null;
 }

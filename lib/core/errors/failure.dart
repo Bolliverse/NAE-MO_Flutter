@@ -24,6 +24,10 @@ class CacheFailure extends Failure {
   const CacheFailure([super.message = '데이터를 불러올 수 없습니다.']);
 }
 
+class ValidationFailure extends Failure {
+  const ValidationFailure(super.message);
+}
+
 class UnauthorizedFailure extends Failure {
   const UnauthorizedFailure([super.message = '인증이 필요합니다.']);
 }

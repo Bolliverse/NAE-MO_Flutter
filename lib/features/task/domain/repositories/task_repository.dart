@@ -4,6 +4,8 @@ import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.d
 import 'package:nae_mo/features/task/domain/usecases/params/update_task_params.dart';
 
 abstract interface class TaskRepository {
+  Future<Result<Task>> getTaskById(String id);
+
   /// 특정 날짜의 태스크 조회 (시간 있는 태스크 + 종일 태스크)
   Future<Result<List<Task>>> getTasksByDate(DateTime date);
 
@@ -12,6 +14,8 @@ abstract interface class TaskRepository {
 
   /// Task Dock — 미배정(시간 없는, 미완료) 태스크
   Future<Result<List<Task>>> getUnscheduledTasks();
+
+  Future<Result<List<Task>>> getTasksForTodayOverview(DateTime selectedDate);
 
   Future<Result<Task>> createTask(CreateTaskParams params);
   Future<Result<Task>> updateTask(UpdateTaskParams params);
