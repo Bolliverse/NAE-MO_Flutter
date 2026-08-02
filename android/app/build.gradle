@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.bolliverse.todo.todo_project"
     compileSdk = 35
-    ndkVersion = "25.1.8937393"
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -22,7 +22,7 @@ android {
 
     defaultConfig {
         applicationId = "com.bolliverse.todo.todo_project"
-        minSdk = 23
+        minSdkVersion = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
