@@ -16,12 +16,23 @@ class TodayPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final today = ref.watch(todayViewModelProvider);
+    final selectedDate = ref.watch(selectedDateProvider);
+    final selectedDateNotifier = ref.read(selectedDateProvider.notifier);
+    final dateHeader = TodayDateHeader(
+      key: const Key('todayDateHeader'),
+      selectedDate: selectedDate,
+      onPrevious: () => selectedDateNotifier.addDays(-1),
+      onToday: selectedDateNotifier.goToToday,
+      onNext: () => selectedDateNotifier.addDays(1),
+      onSelectDate: selectedDateNotifier.select,
+    );
 
     return today.when(
       skipLoadingOnRefresh: false,
       skipLoadingOnReload: false,
-      loading: () => const _TodayPageFrame(
-        child: Center(
+      loading: () => _TodayStatus(
+        dateHeader: dateHeader,
+        child: const Center(
           child: CircularProgressIndicator(
             key: Key('todayLoadingIndicator'),
             semanticsLabel: '오늘 일정 불러오는 중',
@@ -29,20 +40,26 @@ class TodayPage extends ConsumerWidget {
         ),
       ),
       error: (error, _) => _TodayError(
+        dateHeader: dateHeader,
         message: error is Failure ? error.message : '잠시 후 다시 시도해주세요.',
         onRetry: () => ref.read(todayViewModelProvider.notifier).retry(),
       ),
-      data: (state) => _TodayContent(state: state),
+      data: (state) => _TodayContent(
+        state: state,
+        dateHeader: dateHeader,
+      ),
     );
   }
 }
 
 class _TodayError extends StatelessWidget {
   const _TodayError({
+    required this.dateHeader,
     required this.message,
     required this.onRetry,
   });
 
+  final Widget dateHeader;
   final String message;
   final VoidCallback onRetry;
 
@@ -51,51 +68,76 @@ class _TodayError extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
+    return _TodayStatus(
+      dateHeader: dateHeader,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 40,
+                color: colors.error,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '오늘 일정을 불러올 수 없어요.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                key: const Key('todayRetryButton'),
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayStatus extends StatelessWidget {
+  const _TodayStatus({
+    required this.dateHeader,
+    required this.child,
+  });
+
+  final Widget dateHeader;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     return _TodayPageFrame(
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 40,
-                        color: colors.error,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '오늘 일정을 불러올 수 없어요.',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        key: const Key('todayRetryButton'),
-                        onPressed: onRetry,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('다시 시도'),
-                      ),
-                    ],
+            child: Column(
+              children: [
+                dateHeader,
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight / 2,
                   ),
+                  child: child,
                 ),
-              ),
+              ],
             ),
           );
         },
@@ -105,9 +147,13 @@ class _TodayError extends StatelessWidget {
 }
 
 class _TodayContent extends ConsumerWidget {
-  const _TodayContent({required this.state});
+  const _TodayContent({
+    required this.state,
+    required this.dateHeader,
+  });
 
   final TodayState state;
+  final Widget dateHeader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,21 +176,12 @@ class _TodayContent extends ConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(failure.message)));
     }
 
-    final selectedDateNotifier = ref.read(selectedDateProvider.notifier);
-
     return _TodayPageFrame(
       child: ListView(
         key: const Key('todayContent'),
         padding: const EdgeInsets.only(bottom: 128),
         children: [
-          TodayDateHeader(
-            key: const Key('todayDateHeader'),
-            selectedDate: overview.date,
-            onPrevious: () => selectedDateNotifier.addDays(-1),
-            onToday: selectedDateNotifier.goToToday,
-            onNext: () => selectedDateNotifier.addDays(1),
-            onSelectDate: selectedDateNotifier.select,
-          ),
+          dateHeader,
           TodayOverdueSection(
             key: const Key('todayOverdueSection'),
             entries: overview.overdueTodos,
