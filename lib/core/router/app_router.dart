@@ -67,19 +67,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.add,
         name: 'add',
         builder: (context, state) {
+          final returnLocation = _calendarReturnLocation(
+            state.uri.queryParameters['from'],
+          );
           final selectedDate = ProviderScope.containerOf(
             context,
             listen: false,
           ).read(selectedDateProvider);
           return NewItemPage(
             selectedDate: selectedDate,
-            onClose: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.today);
-              }
-            },
+            onClose: () => context.go(returnLocation),
           );
         },
       ),
@@ -117,6 +114,14 @@ String? _authRedirect(
 
   if (isBootstrap || isLogin) return AppRoutes.today;
   return null;
+}
+
+String _calendarReturnLocation(String? location) {
+  return switch (location) {
+    AppRoutes.week => AppRoutes.week,
+    AppRoutes.month => AppRoutes.month,
+    _ => AppRoutes.today,
+  };
 }
 
 class _RouterRefreshNotifier extends ChangeNotifier {
