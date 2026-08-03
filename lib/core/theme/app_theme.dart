@@ -12,10 +12,17 @@ class AppTheme {
         colorScheme: ColorScheme.fromSeed(
           seedColor: _primaryColor,
           brightness: Brightness.light,
-        ),
+        ).copyWith(surface: Colors.white),
+        scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           centerTitle: true,
           elevation: 0,
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -29,7 +36,8 @@ class AppTheme {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       );
 
@@ -56,7 +64,8 @@ class AppTheme {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       );
 }
