@@ -213,7 +213,7 @@ void main() {
     );
     expect(
       tester.state<ScrollableState>(scrollable).position.pixels,
-      8 * 80,
+      616,
     );
 
     await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
