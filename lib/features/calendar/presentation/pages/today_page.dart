@@ -188,7 +188,7 @@ class _TodayContent extends ConsumerWidget {
           key: const Key('dailySplitScaffold'),
           header: dateHeader,
           pinnedHeight: 220,
-          initialTimelineOffset: 8 * dailyCalendarHourExtent,
+          initialTimelineOffset: 8 * dailyCalendarHourExtent - 24,
           calendarPinnedBuilder: (context, layout) => DailyCalendarPinned(
             key: const Key('dailyCalendarPinned'),
             entries: overview.allDayEvents,
