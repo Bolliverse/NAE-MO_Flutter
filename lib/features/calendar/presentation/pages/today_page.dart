@@ -20,14 +20,16 @@ class TodayPage extends ConsumerWidget {
     return today.when(
       skipLoadingOnRefresh: false,
       skipLoadingOnReload: false,
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          key: Key('todayLoadingIndicator'),
-          semanticsLabel: '오늘 일정 불러오는 중',
+      loading: () => const _TodayPageFrame(
+        child: Center(
+          child: CircularProgressIndicator(
+            key: Key('todayLoadingIndicator'),
+            semanticsLabel: '오늘 일정 불러오는 중',
+          ),
         ),
       ),
       error: (error, _) => _TodayError(
-        message: error is Failure ? error.message : error.toString(),
+        message: error is Failure ? error.message : '잠시 후 다시 시도해주세요.',
         onRetry: () => ref.read(todayViewModelProvider.notifier).retry(),
       ),
       data: (state) => _TodayContent(state: state),
@@ -49,43 +51,54 @@ class _TodayError extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 40,
-              color: colors.error,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '오늘 일정을 불러올 수 없어요.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colors.onSurface,
-                fontWeight: FontWeight.w700,
+    return _TodayPageFrame(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 40,
+                        color: colors.error,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '오늘 일정을 불러올 수 없어요.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colors.onSurface,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        key: const Key('todayRetryButton'),
+                        onPressed: onRetry,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('다시 시도'),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              key: const Key('todayRetryButton'),
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('다시 시도'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -101,9 +114,16 @@ class _TodayContent extends ConsumerWidget {
     final overview = state.overview;
 
     Future<void> toggleTodo(String taskId) async {
+      final initiatingDate = overview.date;
       final failure =
           await ref.read(todayViewModelProvider.notifier).toggleTodo(taskId);
       if (failure == null || !context.mounted) return;
+      if (!_isSameLocalDate(
+        initiatingDate,
+        ref.read(selectedDateProvider),
+      )) {
+        return;
+      }
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -112,66 +132,86 @@ class _TodayContent extends ConsumerWidget {
 
     final selectedDateNotifier = ref.read(selectedDateProvider.notifier);
 
+    return _TodayPageFrame(
+      child: ListView(
+        key: const Key('todayContent'),
+        padding: const EdgeInsets.only(bottom: 128),
+        children: [
+          TodayDateHeader(
+            key: const Key('todayDateHeader'),
+            selectedDate: overview.date,
+            onPrevious: () => selectedDateNotifier.addDays(-1),
+            onToday: selectedDateNotifier.goToToday,
+            onNext: () => selectedDateNotifier.addDays(1),
+            onSelectDate: selectedDateNotifier.select,
+          ),
+          TodayOverdueSection(
+            key: const Key('todayOverdueSection'),
+            entries: overview.overdueTodos,
+            isExpanded: state.isOverdueExpanded,
+            pendingTodoIds: state.pendingTodoIds,
+            onToggleExpanded:
+                ref.read(todayViewModelProvider.notifier).toggleOverdueSection,
+            onToggleTodo: toggleTodo,
+          ),
+          TodayAllDaySection(
+            key: const Key('todayAllDaySection'),
+            entries: overview.allDayEvents,
+          ),
+          TodayTimelineSection(
+            key: const Key('todayTimelineSection'),
+            entries: overview.timelineItems,
+            pendingTodoIds: state.pendingTodoIds,
+            onToggleTodo: toggleTodo,
+          ),
+          TodayTodoSection(
+            key: const Key('todayUntimedSection'),
+            title: '시간 미정 할 일',
+            entries: overview.untimedTodos,
+            pendingTodoIds: state.pendingTodoIds,
+            onToggleTodo: toggleTodo,
+          ),
+          TodayTodoSection(
+            key: const Key('todayCompletedSection'),
+            title: '완료한 할 일',
+            entries: overview.completedTodos,
+            pendingTodoIds: state.pendingTodoIds,
+            onToggleTodo: toggleTodo,
+            isCompletedPresentation: true,
+            isExpanded: state.isCompletedExpanded,
+            onToggleExpanded: ref
+                .read(todayViewModelProvider.notifier)
+                .toggleCompletedSection,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayPageFrame extends StatelessWidget {
+  const _TodayPageFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            key: const Key('todayContent'),
-            padding: const EdgeInsets.only(bottom: 128),
-            children: [
-              TodayDateHeader(
-                key: const Key('todayDateHeader'),
-                selectedDate: overview.date,
-                onPrevious: () => selectedDateNotifier.addDays(-1),
-                onToday: selectedDateNotifier.goToToday,
-                onNext: () => selectedDateNotifier.addDays(1),
-                onSelectDate: selectedDateNotifier.select,
-              ),
-              TodayOverdueSection(
-                key: const Key('todayOverdueSection'),
-                entries: overview.overdueTodos,
-                isExpanded: state.isOverdueExpanded,
-                pendingTodoIds: state.pendingTodoIds,
-                onToggleExpanded: ref
-                    .read(todayViewModelProvider.notifier)
-                    .toggleOverdueSection,
-                onToggleTodo: toggleTodo,
-              ),
-              TodayAllDaySection(
-                key: const Key('todayAllDaySection'),
-                entries: overview.allDayEvents,
-              ),
-              TodayTimelineSection(
-                key: const Key('todayTimelineSection'),
-                entries: overview.timelineItems,
-                pendingTodoIds: state.pendingTodoIds,
-                onToggleTodo: toggleTodo,
-              ),
-              TodayTodoSection(
-                key: const Key('todayUntimedSection'),
-                title: '시간 미정 할 일',
-                entries: overview.untimedTodos,
-                pendingTodoIds: state.pendingTodoIds,
-                onToggleTodo: toggleTodo,
-              ),
-              TodayTodoSection(
-                key: const Key('todayCompletedSection'),
-                title: '완료한 할 일',
-                entries: overview.completedTodos,
-                pendingTodoIds: state.pendingTodoIds,
-                onToggleTodo: toggleTodo,
-                isCompletedPresentation: true,
-                isExpanded: state.isCompletedExpanded,
-                onToggleExpanded: ref
-                    .read(todayViewModelProvider.notifier)
-                    .toggleCompletedSection,
-              ),
-            ],
-          ),
+          child: child,
         ),
       ),
     );
   }
+}
+
+bool _isSameLocalDate(DateTime left, DateTime right) {
+  final localLeft = left.toLocal();
+  final localRight = right.toLocal();
+  return localLeft.year == localRight.year &&
+      localLeft.month == localRight.month &&
+      localLeft.day == localRight.day;
 }
