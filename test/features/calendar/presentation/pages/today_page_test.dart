@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show SemanticsFlag;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,7 +26,7 @@ void main() {
     Intl.defaultLocale = 'ko';
   });
 
-  testWidgets('an unresolved reload shows only loading without old content',
+  testWidgets('an unresolved reload keeps the selected date header interactive',
       (tester) async {
     final reload = Completer<Result<TodayOverview>>();
     final nextDate = DateTime(2026, 8, 4);
@@ -61,11 +62,64 @@ void main() {
 
     expect(find.byKey(const Key('todayLoadingIndicator')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.byKey(const Key('todayDate-2026-08-04')))
+          .hasFlag(SemanticsFlag.isSelected),
+      isTrue,
+    );
     expect(find.byKey(const Key('todayContent')), findsNothing);
     expect(find.byKey(const Key('todayEntry-old-content')), findsNothing);
 
-    reload.complete(success(_overview(nextDate)));
+    await tester.tap(find.byKey(const Key('todayNextDate')));
+    await tester.pump();
+
+    expect(harness.container.read(selectedDateProvider), DateTime(2026, 8, 5));
+    expect(find.byKey(const Key('todayLoadingIndicator')), findsOneWidget);
+    expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.byKey(const Key('todayDate-2026-08-05')))
+          .hasFlag(SemanticsFlag.isSelected),
+      isTrue,
+    );
+
+    reload.complete(success(_overview(DateTime(2026, 8, 5))));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('load failure keeps the header bound to the selected date',
+      (tester) async {
+    const failure = CacheFailure('Failed to load today data.');
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (_) async => fail(failure),
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
+    expect(find.byKey(const Key('todayRetryButton')), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.byKey(const Key('todayDate-2026-08-03')))
+          .hasFlag(SemanticsFlag.isSelected),
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const Key('todayNextDate')));
+    await tester.pumpAndSettle();
+
+    expect(harness.container.read(selectedDateProvider), DateTime(2026, 8, 4));
+    expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
+    expect(find.byKey(const Key('todayRetryButton')), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(find.byKey(const Key('todayDate-2026-08-04')))
+          .hasFlag(SemanticsFlag.isSelected),
+      isTrue,
+    );
   });
 
   testWidgets('load failure shows its message and retry reloads current date',
