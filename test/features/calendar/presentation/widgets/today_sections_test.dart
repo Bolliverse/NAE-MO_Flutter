@@ -188,7 +188,7 @@ void main() {
       );
 
       expect(find.text('일정'), findsOneWidget);
-      expect(find.text('시간이 정해진 일정이 없어요'), findsOneWidget);
+      expect(find.text('시간이 정해진 일정이 없어요.'), findsOneWidget);
     });
 
     testWidgets(
@@ -270,7 +270,7 @@ void main() {
   });
 
   group('TodayTodoSection', () {
-    testWidgets('shows the configured empty message', (tester) async {
+    testWidgets('shows the fixed untimed empty message', (tester) async {
       await _pump(
         tester,
         TodayTodoSection(
@@ -278,13 +278,30 @@ void main() {
           entries: const [],
           pendingTodoIds: const {},
           onToggleTodo: (_) {},
-          emptyMessage: '남은 할 일이 없어요',
         ),
       );
 
       expect(find.text('시간 미정 할 일'), findsOneWidget);
       expect(find.text('0개'), findsOneWidget);
-      expect(find.text('남은 할 일이 없어요'), findsOneWidget);
+      expect(find.text('시간이 정해지지 않은 할 일이 없어요.'), findsOneWidget);
+    });
+
+    testWidgets('shows the fixed completed empty message while expanded',
+        (tester) async {
+      await _pump(
+        tester,
+        TodayTodoSection(
+          title: '완료한 할 일',
+          entries: const [],
+          pendingTodoIds: const {},
+          onToggleTodo: (_) {},
+          isCompletedPresentation: true,
+          isExpanded: true,
+          onToggleExpanded: () {},
+        ),
+      );
+
+      expect(find.text('완료한 할 일이 없어요.'), findsOneWidget);
     });
 
     testWidgets('shows todo details and reports the exact todo id',
