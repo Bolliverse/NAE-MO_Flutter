@@ -12,6 +12,8 @@ part 'today_view_model.g.dart';
 
 @riverpod
 class TodayViewModel extends _$TodayViewModel {
+  final Map<String, Object> _latestToggleOperations = {};
+
   @override
   Future<TodayState> build() async {
     final selectedDate = ref.watch(selectedDateProvider);
@@ -58,6 +60,9 @@ class TodayViewModel extends _$TodayViewModel {
     final optimistic = _toggleCompletion(previous, taskId);
     if (optimistic == null) return null;
 
+    final operation = Object();
+    _latestToggleOperations[taskId] = operation;
+
     state = AsyncData(
       optimistic.copyWith(
         pendingTodoIds: {...optimistic.pendingTodoIds, taskId},
@@ -65,6 +70,11 @@ class TodayViewModel extends _$TodayViewModel {
     );
 
     final result = await ref.read(toggleCompleteUseCaseProvider)(taskId);
+    if (!identical(_latestToggleOperations[taskId], operation)) {
+      return null;
+    }
+    _latestToggleOperations.remove(taskId);
+
     final failure = result.failure;
     if (failure != null) {
       final current = state.valueOrNull;
