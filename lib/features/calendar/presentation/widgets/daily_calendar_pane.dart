@@ -101,28 +101,34 @@ class _CompactPinnedCalendar extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
         children: [
-          for (var index = 0; index < visible.length; index++) ...[
-            Container(
-              key: Key('dailyCalendarCompactAllDay-$index'),
-              height: 24,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: _entryColor(visible[index]),
-                borderRadius: BorderRadius.circular(5),
+          for (var index = 0; index < visible.length; index++)
+            Positioned(
+              top: index * 8,
+              left: index * 3,
+              right: (visible.length - index - 1) * 3,
+              height: 32,
+              child: Container(
+                key: Key('dailyCalendarCompactAllDay-$index'),
+                decoration: BoxDecoration(
+                  color: _entryColor(visible[index]),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.white, width: 1),
+                ),
               ),
             ),
-            if (index != visible.length - 1) const SizedBox(height: 4),
-          ],
-          if (overflow > 0) ...[
-            const SizedBox(height: 6),
-            _OverflowBadge(
-              key: const Key('dailyCalendarPinnedOverflow'),
-              count: overflow,
+          if (overflow > 0)
+            Positioned(
+              top: visible.length * 8 + 34,
+              left: 0,
+              right: 0,
+              height: 24,
+              child: _OverflowBadge(
+                key: const Key('dailyCalendarPinnedOverflow'),
+                count: overflow,
+              ),
             ),
-          ],
         ],
       ),
     );
@@ -178,7 +184,7 @@ class DailyCalendarTimeline extends StatelessWidget {
           ],
           for (final group in groups)
             if (isCompact)
-              _CompactEventGroup(group: group)
+              ..._compactEvents(group)
             else
               ..._expandedEvents(context, group),
         ],
@@ -197,6 +203,53 @@ class DailyCalendarTimeline extends StatelessWidget {
               60 *
               dailyCalendarHourExtent,
           child: _ExpandedEventBlock(entry: group.entries[index].entry),
+        ),
+    ];
+  }
+
+  List<Widget> _compactEvents(_TimedGroup group) {
+    const visibleCount = 2;
+    final visible = group.entries.take(visibleCount).toList(growable: false);
+    final overflow = group.entries.length - visible.length;
+    final slotCount = visible.length + (overflow > 0 ? 1 : 0);
+
+    return [
+      for (var index = 0; index < visible.length; index++)
+        Positioned(
+          top: visible[index].startMinute / 60 * dailyCalendarHourExtent,
+          left: 5,
+          right: 5,
+          height: visible[index].durationMinutes / 60 * dailyCalendarHourExtent,
+          child: _CompactSlot(
+            index: index,
+            count: slotCount,
+            child: Container(
+              key: Key(
+                'dailyCalendarCompactEvent-${visible[index].entry.task.id}',
+              ),
+              decoration: BoxDecoration(
+                color: _entryColor(visible[index].entry),
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+          ),
+        ),
+      if (overflow > 0)
+        Positioned(
+          top: group.startMinute / 60 * dailyCalendarHourExtent,
+          left: 5,
+          right: 5,
+          height: 28,
+          child: _CompactSlot(
+            index: slotCount - 1,
+            count: slotCount,
+            child: _OverflowBadge(
+              key: Key(
+                'dailyCalendarTimelineOverflow-${group.startMinute}',
+              ),
+              count: overflow,
+            ),
+          ),
         ),
     ];
   }
@@ -267,50 +320,27 @@ class _ExpandedEventBlock extends StatelessWidget {
   }
 }
 
-class _CompactEventGroup extends StatelessWidget {
-  const _CompactEventGroup({required this.group});
+class _CompactSlot extends StatelessWidget {
+  const _CompactSlot({
+    required this.index,
+    required this.count,
+    required this.child,
+  });
 
-  static const _visibleCount = 2;
-  final _TimedGroup group;
+  final int index;
+  final int count;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final visible = group.entries.take(_visibleCount).toList(growable: false);
-    final overflow = group.entries.length - visible.length;
-    return Positioned(
-      top: group.startMinute / 60 * dailyCalendarHourExtent,
-      left: 5,
-      right: 5,
-      height: group.durationMinutes / 60 * dailyCalendarHourExtent,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var index = 0; index < visible.length; index++) ...[
-            Expanded(
-              child: Container(
-                key: Key(
-                  'dailyCalendarCompactEvent-${visible[index].entry.task.id}',
-                ),
-                decoration: BoxDecoration(
-                  color: _entryColor(visible[index].entry),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-              ),
-            ),
-            if (index != visible.length - 1 || overflow > 0)
-              const SizedBox(width: 3),
-          ],
-          if (overflow > 0)
-            Expanded(
-              child: _OverflowBadge(
-                key: Key(
-                  'dailyCalendarTimelineOverflow-${group.startMinute}',
-                ),
-                count: overflow,
-              ),
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var slot = 0; slot < count; slot++) ...[
+          Expanded(child: slot == index ? child : const SizedBox.shrink()),
+          if (slot != count - 1) const SizedBox(width: 3),
         ],
-      ),
+      ],
     );
   }
 }
