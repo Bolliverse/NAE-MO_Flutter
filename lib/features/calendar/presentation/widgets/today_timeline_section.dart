@@ -38,7 +38,7 @@ class TodayTimelineSection extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                '시간이 정해진 일정이 없어요',
+                '시간이 정해진 일정이 없어요.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
