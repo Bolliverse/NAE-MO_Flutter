@@ -4,8 +4,8 @@ import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/features/calendar/presentation/states/today_state.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/daily_calendar_pane.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/daily_split_scaffold.dart';
-import 'package:nae_mo/features/calendar/presentation/widgets/today_all_day_section.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_date_header.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_overdue_section.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_timeline_section.dart';
@@ -188,13 +188,11 @@ class _TodayContent extends ConsumerWidget {
           key: const Key('dailySplitScaffold'),
           header: dateHeader,
           pinnedHeight: 220,
-          calendarPinnedBuilder: (context, layout) => _PanePresentation(
+          initialTimelineOffset: 8 * dailyCalendarHourExtent,
+          calendarPinnedBuilder: (context, layout) => DailyCalendarPinned(
             key: const Key('dailyCalendarPinned'),
-            layout: layout,
-            expanded: TodayAllDaySection(
-              key: const Key('todayAllDaySection'),
-              entries: overview.allDayEvents,
-            ),
+            entries: overview.allDayEvents,
+            isCompact: layout.isCompact,
           ),
           todoPinnedBuilder: (context, layout) => _PanePresentation(
             key: const Key('dailyTodoPinned'),
@@ -222,16 +220,10 @@ class _TodayContent extends ConsumerWidget {
               ],
             ),
           ),
-          calendarTimelineBuilder: (context, layout) => _PanePresentation(
+          calendarTimelineBuilder: (context, layout) => DailyCalendarTimeline(
             key: const Key('dailyCalendarTimeline'),
-            layout: layout,
-            isTimeline: true,
-            expanded: TodayTimelineSection(
-              key: const Key('todayCalendarTimelineSection'),
-              entries: calendarTimeline,
-              pendingTodoIds: state.pendingTodoIds,
-              onToggleTodo: toggleTodo,
-            ),
+            entries: calendarTimeline,
+            isCompact: layout.isCompact,
           ),
           todoTimelineBuilder: (context, layout) => _PanePresentation(
             key: const Key('dailyTodoTimeline'),
