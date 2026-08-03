@@ -400,7 +400,6 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
   final Completer<Result<AuthSession>>? restoreCompleter;
   final Completer<Result<AuthSession>>? signInCompleter;
   final Failure? signInFailure;
-  final Failure? signOutFailure;
   final bool cancelSignIn;
 
   int signInCalls = 0;
@@ -410,7 +409,6 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
     this.restoreCompleter,
     this.signInCompleter,
     this.signInFailure,
-    this.signOutFailure,
     this.cancelSignIn = false,
   });
 
@@ -444,8 +442,6 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
 
   @override
   Future<Result<AuthSession>> signOut() async {
-    final failure = signOutFailure;
-    if (failure != null) return fail(failure);
     storedProvider = null;
     return success(const UnauthenticatedSession());
   }
