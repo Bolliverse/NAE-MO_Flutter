@@ -6,10 +6,14 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def appCompileSdkVersion = providers.gradleProperty("app.compileSdkVersion").get().toInteger()
+def appMinSdkVersion = providers.gradleProperty("app.minSdkVersion").get().toInteger()
+def appNdkVersion = providers.gradleProperty("app.ndkVersion").get()
+
 android {
     namespace = "com.bolliverse.todo.todo_project"
-    compileSdk = 35
-    ndkVersion = "27.0.12077973"
+    compileSdk = appCompileSdkVersion
+    ndkVersion = appNdkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -22,7 +26,7 @@ android {
 
     defaultConfig {
         applicationId = "com.bolliverse.todo.todo_project"
-        minSdkVersion = flutter.minSdkVersion
+        minSdkVersion = appMinSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
