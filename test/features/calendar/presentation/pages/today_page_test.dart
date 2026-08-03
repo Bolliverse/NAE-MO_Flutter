@@ -54,7 +54,10 @@ void main() {
     );
     await _pumpPage(tester, harness);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('todayEntry-old-content')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-old-content')),
+      findsOneWidget,
+    );
 
     harness.container.read(selectedDateProvider.notifier).select(nextDate);
     await tester.pump();
@@ -64,7 +67,10 @@ void main() {
     expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
     expect(find.text('8/4'), findsOneWidget);
     expect(find.byKey(const Key('todayContent')), findsNothing);
-    expect(find.byKey(const Key('todayEntry-old-content')), findsNothing);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-old-content')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const Key('todayNextDate')));
     await tester.pump();
