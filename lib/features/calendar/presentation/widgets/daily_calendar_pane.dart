@@ -225,10 +225,13 @@ class _ExpandedEventBlock extends StatelessWidget {
           color: color,
           borderRadius: BorderRadius.circular(6),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final showTime = constraints.maxHeight >= 48 && start != null;
+            final textScale = MediaQuery.textScalerOf(context).scale(1);
+            final showTime = constraints.maxHeight >= 32 &&
+                start != null &&
+                textScale <= 1.3;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
