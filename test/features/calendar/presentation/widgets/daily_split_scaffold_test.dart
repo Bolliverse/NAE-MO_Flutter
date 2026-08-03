@@ -114,12 +114,29 @@ void main() {
     );
     expect(calendarMarker.dy, closeTo(todoMarker.dy, .1));
   });
+
+  testWidgets('applies the requested initial timeline offset', (tester) async {
+    await _pumpScaffold(tester, initialTimelineOffset: 240);
+
+    final scrollable = find.descendant(
+      of: find.byKey(const Key('dailyTimelineScroll')),
+      matching: find.byType(Scrollable),
+    );
+    final position = tester.state<ScrollableState>(scrollable).position;
+
+    expect(position.pixels, 240);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('fixtureCalendarMarker'))).dy,
+      closeTo(524, .1),
+    );
+  });
 }
 
 Future<void> _pumpScaffold(
   WidgetTester tester, {
   DailyPane initialPane = DailyPane.calendar,
   ValueChanged<DailyPane>? onPaneChanged,
+  double initialTimelineOffset = 0,
 }) async {
   tester.view
     ..physicalSize = const Size(400, 800)
@@ -137,6 +154,7 @@ Future<void> _pumpScaffold(
           key: const Key('dailySplitScaffold'),
           initialPane: initialPane,
           onPaneChanged: onPaneChanged,
+          initialTimelineOffset: initialTimelineOffset,
           header: const SizedBox(
             key: Key('fixtureHeader'),
             height: 64,
