@@ -166,6 +166,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a half-hour event still shows its time range', (tester) async {
+    final entry = _event(
+      id: 'standup',
+      title: '팀 스탠드업',
+      category: blue,
+      start: DateTime(2026, 8, 3, 9, 30),
+      end: DateTime(2026, 8, 3, 10),
+    );
+
+    await _pump(
+      tester,
+      DailyCalendarTimeline(entries: [entry], isCompact: false),
+      size: const Size(390, dailyCalendarTimelineHeight),
+    );
+
+    expect(find.text('팀 스탠드업'), findsOneWidget);
+    expect(find.text('09:30–10:00'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('empty calendar leaves only neutral time lines', (tester) async {
     await _pump(
       tester,
