@@ -211,7 +211,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('expanded Todo pinned content stays overflow-free on mobile',
+  testWidgets('expanded Todo pinned overflow remains reachable on mobile',
       (tester) async {
     _setSurfaceSize(tester, const Size(390, 844));
     final harness = _PageHarness(
@@ -236,6 +236,18 @@ void main() {
     await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
     await tester.pumpAndSettle();
 
+    final lastTodo =
+        find.byKey(const Key('todayTodoCheckbox-overflow-7'));
+    expect(lastTodo, findsOneWidget);
+    expect(lastTodo.hitTestable(), findsNothing);
+
+    await tester.drag(
+      find.byKey(const Key('dailyTodoPinned')),
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
+
+    expect(lastTodo.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
