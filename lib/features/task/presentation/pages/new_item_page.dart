@@ -37,7 +37,7 @@ class _NewItemPageState extends State<NewItemPage> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (!didPop) widget.onClose();
       },
       child: Scaffold(
@@ -139,10 +139,10 @@ class _Header extends StatelessWidget {
                   ),
             ),
           ),
-          TextButton(
-            key: const Key('newItemSaveButton'),
+          const TextButton(
+            key: Key('newItemSaveButton'),
             onPressed: null,
-            child: const Text('저장'),
+            child: Text('저장'),
           ),
           const SizedBox(width: 8),
         ],
