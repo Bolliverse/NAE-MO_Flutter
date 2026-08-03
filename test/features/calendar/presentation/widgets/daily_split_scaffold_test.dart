@@ -142,12 +142,12 @@ Future<void> _pumpScaffold(
             height: 64,
           ),
           pinnedHeight: 100,
-          calendarPinnedBuilder: (context, layout) => ColoredBox(
-            key: const Key('fixtureCalendarPinned'),
+          calendarPinnedBuilder: (context, layout) => const ColoredBox(
+            key: Key('fixtureCalendarPinned'),
             color: Colors.lightBlue,
           ),
-          todoPinnedBuilder: (context, layout) => ColoredBox(
-            key: const Key('fixtureTodoPinned'),
+          todoPinnedBuilder: (context, layout) => const ColoredBox(
+            key: Key('fixtureTodoPinned'),
             color: Colors.lightGreen,
           ),
           calendarTimelineBuilder: (context, layout) => const _TimelineFixture(
@@ -170,12 +170,10 @@ void _expectPaneRatio(
   required double calendar,
   required double todo,
 }) {
-  final calendarWidth = tester
-      .getSize(find.byKey(const Key('dailyCalendarPinnedPane')))
-      .width;
-  final todoWidth = tester
-      .getSize(find.byKey(const Key('dailyTodoPinnedPane')))
-      .width;
+  final calendarWidth =
+      tester.getSize(find.byKey(const Key('dailyCalendarPinnedPane'))).width;
+  final todoWidth =
+      tester.getSize(find.byKey(const Key('dailyTodoPinnedPane'))).width;
   final paneWidth = calendarWidth + todoWidth;
 
   expect(calendarWidth / paneWidth, closeTo(calendar, .01));
