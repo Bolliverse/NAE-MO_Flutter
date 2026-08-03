@@ -32,88 +32,150 @@ class TodayDateHeader extends StatelessWidget {
     final colors = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final title = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                DateFormat('yyyy년 M월', 'ko').format(normalizedDate),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                DateFormat('d일 EEEE', 'ko').format(normalizedDate),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: colors.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          );
+          final controls = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                key: const Key('todayPreviousDate'),
+                onPressed: onPrevious,
+                tooltip: '이전 날',
+                constraints: const BoxConstraints.tightFor(
+                  width: 48,
+                  height: 48,
+                ),
+                icon: const Icon(Icons.chevron_left),
+              ),
+              TextButton(
+                key: const Key('todayGoToToday'),
+                onPressed: onToday,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                child: const Text('오늘'),
+              ),
+              IconButton(
+                key: const Key('todayNextDate'),
+                onPressed: onNext,
+                tooltip: '다음 날',
+                constraints: const BoxConstraints.tightFor(
+                  width: 48,
+                  height: 48,
+                ),
+                icon: const Icon(Icons.chevron_right),
+              ),
+            ],
+          );
+          final shouldStack = constraints.maxWidth < 420 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.3;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (shouldStack)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        DateFormat('yyyy년 M월', 'ko').format(normalizedDate),
-                        maxLines: 1,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        DateFormat('d일 EEEE', 'ko').format(normalizedDate),
-                        maxLines: 1,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                    title,
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: controls,
                     ),
                   ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: title),
+                    const SizedBox(width: 8),
+                    controls,
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    key: const Key('todayPreviousDate'),
-                    onPressed: onPrevious,
-                    tooltip: '이전 날',
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  TextButton(
-                    key: const Key('todayGoToToday'),
-                    onPressed: onToday,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                    ),
-                    child: const Text('오늘'),
-                  ),
-                  IconButton(
-                    key: const Key('todayNextDate'),
-                    onPressed: onNext,
-                    tooltip: '다음 날',
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              _DateStrip(
+                dates: dates,
+                selectedDate: normalizedDate,
+                onSelectDate: onSelectDate,
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              for (final date in dates)
-                Expanded(
-                  child: _DateButton(
-                    date: date,
-                    isSelected: date == normalizedDate,
-                    onPressed: () => onSelectDate(_normalize(date)),
-                  ),
-                ),
-            ],
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  static DateTime _normalize(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+}
+
+class _DateStrip extends StatelessWidget {
+  static const _dateWidth = 48.0;
+  static const _stripWidth = _dateWidth * 7;
+
+  final List<DateTime> dates;
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onSelectDate;
+
+  const _DateStrip({
+    required this.dates,
+    required this.selectedDate,
+    required this.onSelectDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final strip = SizedBox(
+      width: _stripWidth,
+      child: Row(
+        children: [
+          for (final date in dates)
+            SizedBox(
+              width: _dateWidth,
+              child: _DateButton(
+                date: date,
+                isSelected: date == selectedDate,
+                onPressed: () => onSelectDate(_normalize(date)),
+              ),
+            ),
         ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= _stripWidth) {
+          return Align(child: strip);
+        }
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: strip,
+        );
+      },
     );
   }
 
