@@ -84,6 +84,75 @@ void main() {
     });
 
     testWidgets(
+        'header is one button semantic control with its current expansion state',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      var expandCalls = 0;
+      final entries = [
+        _entry(
+          id: 'semantic-header-overdue',
+          title: '보고서 제출',
+          kind: TaskKind.todo,
+          targetDate: DateTime(2026, 7, 25),
+        ),
+      ];
+
+      await _pump(
+        tester,
+        TodayOverdueSection(
+          entries: entries,
+          isExpanded: false,
+          pendingTodoIds: const {},
+          onToggleExpanded: () => expandCalls++,
+          onToggleTodo: (_) {},
+        ),
+      );
+
+      const label = '지난 할 일, 1개, 가장 오래된 7월 25일';
+      expect(find.semantics.byLabel(label), findsOne);
+      expect(
+        tester.getSemantics(find.byKey(const Key('todayOverdueHeader'))),
+        matchesSemantics(
+          label: label,
+          hint: '목록 펼치기',
+          isButton: true,
+          hasExpandedState: true,
+          isExpanded: false,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+
+      tester.semantics.tap(find.semantics.byLabel(label));
+      expect(expandCalls, 1);
+
+      await _pump(
+        tester,
+        TodayOverdueSection(
+          entries: entries,
+          isExpanded: true,
+          pendingTodoIds: const {},
+          onToggleExpanded: () {},
+          onToggleTodo: (_) {},
+        ),
+      );
+
+      expect(
+        tester.getSemantics(find.byKey(const Key('todayOverdueHeader'))),
+        matchesSemantics(
+          label: label,
+          hint: '목록 접기',
+          isButton: true,
+          hasExpandedState: true,
+          isExpanded: true,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+      semantics.dispose();
+    });
+
+    testWidgets(
         'expanded rows show original dates and titles and report exact actions',
         (tester) async {
       var expandCalls = 0;
@@ -536,6 +605,78 @@ void main() {
       await tester
           .tap(find.byKey(const Key('todayTodoCheckbox-completed-todo')));
       expect(toggledId, 'completed-todo');
+    });
+
+    testWidgets(
+        'completed header is one button semantic control with its current expansion state',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      var expandCalls = 0;
+      final completed = _entry(
+        id: 'semantic-header-completed',
+        title: '책상 정리',
+        kind: TaskKind.todo,
+        targetDate: DateTime(2026, 7, 29),
+        isCompleted: true,
+      );
+
+      await _pump(
+        tester,
+        TodayTodoSection(
+          title: '완료한 할 일',
+          entries: [completed],
+          pendingTodoIds: const {},
+          onToggleTodo: (_) {},
+          isCompletedPresentation: true,
+          isExpanded: false,
+          onToggleExpanded: () => expandCalls++,
+        ),
+      );
+
+      const label = '완료한 할 일, 1개';
+      expect(find.semantics.byLabel(label), findsOne);
+      expect(
+        tester.getSemantics(find.byKey(const Key('todayCompletedHeader'))),
+        matchesSemantics(
+          label: label,
+          hint: '목록 펼치기',
+          isButton: true,
+          hasExpandedState: true,
+          isExpanded: false,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+
+      tester.semantics.tap(find.semantics.byLabel(label));
+      expect(expandCalls, 1);
+
+      await _pump(
+        tester,
+        TodayTodoSection(
+          title: '완료한 할 일',
+          entries: [completed],
+          pendingTodoIds: const {},
+          onToggleTodo: (_) {},
+          isCompletedPresentation: true,
+          isExpanded: true,
+          onToggleExpanded: () {},
+        ),
+      );
+
+      expect(
+        tester.getSemantics(find.byKey(const Key('todayCompletedHeader'))),
+        matchesSemantics(
+          label: label,
+          hint: '목록 접기',
+          isButton: true,
+          hasExpandedState: true,
+          isExpanded: true,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+      semantics.dispose();
     });
 
     testWidgets(
