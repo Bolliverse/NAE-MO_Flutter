@@ -37,42 +37,52 @@ class TodayOverdueSection extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            InkWell(
+            Semantics(
+              key: const Key('todayOverdueHeader'),
+              container: true,
+              excludeSemantics: true,
+              label: '지난 할 일, ${entries.length}개, 가장 오래된 ${_date(oldestDate)}',
+              hint: isExpanded ? '목록 접기' : '목록 펼치기',
+              button: true,
+              expanded: isExpanded,
               onTap: onToggleExpanded,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 56),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '지난 할 일',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: colors.onErrorContainer,
-                                fontWeight: FontWeight.w700,
+              child: InkWell(
+                onTap: onToggleExpanded,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '지난 할 일',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: colors.onErrorContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${entries.length}개 · 가장 오래된 ${_date(oldestDate)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colors.onErrorContainer.withAlpha(190),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${entries.length}개 · 가장 오래된 ${_date(oldestDate)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colors.onErrorContainer.withAlpha(190),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        isExpanded ? Icons.expand_less : Icons.expand_more,
-                        color: colors.onErrorContainer,
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: colors.onErrorContainer,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
