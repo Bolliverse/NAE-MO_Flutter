@@ -145,65 +145,77 @@ class _TodoRow extends StatelessWidget {
         ? colors.outline
         : Color(category.color).withAlpha(255);
     final isShownCompleted = isCompletedPresentation || entry.task.isCompleted;
+    final completionLabel = isShownCompleted ? '완료' : '미완료';
+    final categoryLabel = category?.name ?? '카테고리 없음';
 
-    return Container(
+    return Semantics(
       key: Key('todayEntry-${entry.task.id}'),
-      constraints: const BoxConstraints(minHeight: 56),
-      padding: const EdgeInsets.only(right: 12),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: Checkbox(
-              key: Key('todayTodoCheckbox-${entry.task.id}'),
-              value: isShownCompleted,
-              onChanged: isPending ? null : (_) => onToggleTodo(entry.task.id),
-              activeColor: accent,
+      container: true,
+      excludeSemantics: true,
+      label: '${entry.task.title}, $categoryLabel, $completionLabel',
+      checked: isShownCompleted,
+      enabled: !isPending,
+      onTap: isPending ? null : () => onToggleTodo(entry.task.id),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.only(right: 12),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: Checkbox(
+                key: Key('todayTodoCheckbox-${entry.task.id}'),
+                value: isShownCompleted,
+                onChanged:
+                    isPending ? null : (_) => onToggleTodo(entry.task.id),
+                activeColor: accent,
+              ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    entry.task.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isShownCompleted
-                          ? colors.onSurfaceVariant
-                          : colors.onSurface,
-                      fontWeight: FontWeight.w600,
-                      decoration: isShownCompleted
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                    ),
-                  ),
-                  if (category != null) ...[
-                    const SizedBox(height: 2),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      category.name,
-                      maxLines: 1,
+                      entry.task.title,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            isShownCompleted ? colors.onSurfaceVariant : accent,
-                        fontWeight: FontWeight.w500,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isShownCompleted
+                            ? colors.onSurfaceVariant
+                            : colors.onSurface,
+                        fontWeight: FontWeight.w600,
                         decoration: isShownCompleted
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
                       ),
                     ),
+                    if (category != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        category.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isShownCompleted
+                              ? colors.onSurfaceVariant
+                              : accent,
+                          fontWeight: FontWeight.w500,
+                          decoration: isShownCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
