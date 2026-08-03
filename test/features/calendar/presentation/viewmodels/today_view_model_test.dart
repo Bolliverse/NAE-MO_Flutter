@@ -374,7 +374,7 @@ void main() {
       expect(await older, isNull);
       expect(await duplicate, isNull);
 
-      final after = harness.container.read(todayViewModelProvider).requireValue;
+      final after = await harness.container.read(todayViewModelProvider.future);
       expect(_ids(after.overview.untimedTodos), isEmpty);
       expect(_ids(after.overview.completedTodos), [original.id]);
       expect(after.pendingTodoIds, isEmpty);
@@ -554,6 +554,54 @@ void main() {
       expect(_ids(reconciled.overview.completedTodos), [incomplete.id]);
       expect(reconciled.pendingTodoIds, isEmpty);
       _expectExclusive(reconciled.overview);
+    });
+
+    test('successful toggle survives an older in-flight reload', () async {
+      final incomplete = _task(
+        id: 'in-flight-reload-success',
+        targetDate: selectedDate,
+      );
+      final completed = _task(
+        id: incomplete.id,
+        targetDate: selectedDate,
+        isCompleted: true,
+      );
+      final staleReload = Completer<Result<TodayOverview>>();
+      var loadCount = 0;
+      final harness = _Harness(
+        initialDate: selectedDate,
+        loadResult: (date) {
+          loadCount += 1;
+          if (loadCount == 1) {
+            return Future.value(
+              success(_overview(date, untimedTodos: [_entry(incomplete)])),
+            );
+          }
+          if (loadCount == 2) return staleReload.future;
+          return Future.value(
+            success(_overview(date, completedTodos: [_entry(completed)])),
+          );
+        },
+      );
+      await harness.container.read(todayViewModelProvider.future);
+      final notifier = harness.container.read(todayViewModelProvider.notifier);
+      final pending = notifier.toggleTodo(incomplete.id);
+
+      notifier.retry();
+      await Future<void>.delayed(Duration.zero);
+      expect(harness.loadUseCase.calls, [selectedDate, selectedDate]);
+
+      harness.toggleUseCase.completeFor(incomplete.id, success(completed));
+      expect(await pending, isNull);
+      staleReload.complete(
+        success(_overview(selectedDate, untimedTodos: [_entry(incomplete)])),
+      );
+
+      final after = await harness.container.read(todayViewModelProvider.future);
+      expect(_ids(after.overview.untimedTodos), isEmpty);
+      expect(_ids(after.overview.completedTodos), [incomplete.id]);
+      expect(after.pendingTodoIds, isEmpty);
+      _expectExclusive(after.overview);
     });
 
     test('completed timed todo re-enters timeline in canonical order',
