@@ -186,6 +186,60 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('compact staggered overlaps keep each visible duration',
+      (tester) async {
+    final entries = [
+      _event(
+        id: 'long',
+        title: '긴 일정',
+        category: blue,
+        start: DateTime(2026, 8, 3, 9),
+        end: DateTime(2026, 8, 3, 12),
+      ),
+      _event(
+        id: 'short',
+        title: '짧은 일정',
+        category: green,
+        start: DateTime(2026, 8, 3, 9, 30),
+        end: DateTime(2026, 8, 3, 10),
+      ),
+      _event(
+        id: 'later',
+        title: '뒤 일정',
+        category: blue,
+        start: DateTime(2026, 8, 3, 10),
+        end: DateTime(2026, 8, 3, 11),
+      ),
+    ];
+
+    await _pump(
+      tester,
+      DailyCalendarTimeline(entries: entries, isCompact: true),
+      size: const Size(64, dailyCalendarTimelineHeight),
+    );
+
+    final surfaceTop = tester
+        .getTopLeft(find.byKey(const Key('dailyCalendarTimelineSurface')))
+        .dy;
+    final longRect = tester.getRect(
+      find.byKey(const Key('dailyCalendarCompactEvent-long')),
+    );
+    final shortRect = tester.getRect(
+      find.byKey(const Key('dailyCalendarCompactEvent-short')),
+    );
+
+    expect(longRect.top - surfaceTop, 9 * dailyCalendarHourExtent);
+    expect(longRect.height, 3 * dailyCalendarHourExtent);
+    expect(shortRect.top - surfaceTop, 9.5 * dailyCalendarHourExtent);
+    expect(shortRect.height, .5 * dailyCalendarHourExtent);
+    expect(
+        find.byKey(const Key('dailyCalendarCompactEvent-later')), findsNothing);
+    expect(find.byKey(const Key('dailyCalendarTimelineOverflow-540')),
+        findsOneWidget);
+    expect(find.text('+1'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('empty calendar leaves only neutral time lines', (tester) async {
     await _pump(
       tester,
