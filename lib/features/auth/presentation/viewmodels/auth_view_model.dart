@@ -44,7 +44,7 @@ class AuthViewModel extends AsyncNotifier<AuthState> {
       state = AsyncData(_resolve(result, current));
     } on Object {
       state = AsyncData(
-        _failed(current, '로그인 정보를 저장하지 못했습니다.'),
+        _failed(current, '로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.'),
       );
     }
   }
@@ -66,7 +66,7 @@ class AuthViewModel extends AsyncNotifier<AuthState> {
       state = AsyncData(_resolve(result, current));
     } on Object {
       state = AsyncData(
-        _failed(current, '로그아웃하지 못했습니다.'),
+        _failed(current, '로그아웃하지 못했습니다. 다시 시도해 주세요.'),
       );
     }
   }

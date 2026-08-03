@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"buildConfigurations":{".":{"projectId":"naem-o","appId":"1:485430213995:android:2599509826f00c8fd5a02e","fileOutput":"android/app/google-services.json"}}},"dart":{"lib/firebase_options.dart":{"projectId":"naem-o","configurations":{"android":"1:485430213995:android:2599509826f00c8fd5a02e","ios":"1:485430213995:ios:c8da87c241d9ebefd5a02e"}}}}}}

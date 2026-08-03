@@ -1,0 +1,78 @@
+{
+  "project_info": {
+    "project_number": "485430213995",
+    "project_id": "naem-o",
+    "storage_bucket": "naem-o.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:485430213995:android:2599509826f00c8fd5a02e",
+        "android_client_info": {
+          "package_name": "com.bolliverse.todo.todo_project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "485430213995-ct7n7h0t24agcrt6su8kvq9gkk8du8lo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bolliverse.todo.todo_project",
+            "certificate_hash": "16a05d5c85f6cb76aac1ac8ba98f6194e31f969b"
+          }
+        },
+        {
+          "client_id": "485430213995-e3ti08lsnsmp61rjj1npvm25mg1b893r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bolliverse.todo.todo_project",
+            "certificate_hash": "939e2ed6fe81bbd27affcf559ee2b14d3426d2b2"
+          }
+        },
+        {
+          "client_id": "485430213995-mbl1rlr8foj24g366sgf8a5r4r0ib2um.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bolliverse.todo.todo_project",
+            "certificate_hash": "e2053436659b5a2e7cd0c39763c401192239327f"
+          }
+        },
+        {
+          "client_id": "485430213995-qc8onairdreppr5qqb40e870022t8d9h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bolliverse.todo.todo_project",
+            "certificate_hash": "e3bda94384a62db90d5731de5e07c6405860d16c"
+          }
+        },
+        {
+          "client_id": "485430213995-htffhf4ocah1vn5627tcfa9skfuvu8q4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMUxWc_1z_4Da-Q_rArn5HiNZ312D-UiU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "485430213995-htffhf4ocah1vn5627tcfa9skfuvu8q4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "485430213995-ccopd7sedfsss28reruuvk15cnl3eu53.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bolliverse.todo.todoProject"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

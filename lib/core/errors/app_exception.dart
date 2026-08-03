@@ -17,6 +17,10 @@ class CacheException extends AppException {
   const CacheException(super.message);
 }
 
+class AuthException extends AppException {
+  const AuthException(super.message);
+}
+
 class UnauthorizedException extends AppException {
   const UnauthorizedException([super.message = '인증이 필요합니다.']);
 }
