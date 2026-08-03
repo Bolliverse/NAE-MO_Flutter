@@ -1,90 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nae_mo/core/router/app_router.dart';
-import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
-import 'package:nae_mo/features/auth/presentation/viewmodels/auth_view_model.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/expandable_menu_fab.dart';
 
-enum _CalendarMenuAction {
-  routineManagement,
-  categoryManagement,
-  settings,
-  signOut,
-}
-
-class CalendarShellPage extends ConsumerWidget {
+class CalendarShellPage extends StatelessWidget {
   const CalendarShellPage({required this.child, super.key});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authViewModelProvider).asData?.value;
+  Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
 
-    ref.listen(authViewModelProvider, (previous, next) {
-      final previousError = previous?.asData?.value.errorMessage;
-      final nextState = next.asData?.value;
-      final nextError = nextState?.errorMessage;
-      final isStillSignedIn = nextState?.session is AuthenticatedSession;
-
-      if (nextError != null && nextError != previousError && isStillSignedIn) {
-        _showMessage(context, nextError);
-      }
-    });
-
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        elevation: 0,
-        title: const Text('NAE MO'),
-        actions: [
-          PopupMenuButton<_CalendarMenuAction>(
-            key: const Key('calendarMoreMenu'),
-            enabled: !(authState?.isSubmitting ?? false),
-            tooltip: '더보기',
-            onSelected: (action) => _handleMenuAction(context, ref, action),
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                key: Key('routineManagementAction'),
-                value: _CalendarMenuAction.routineManagement,
-                child: Text('루틴 관리'),
-              ),
-              PopupMenuItem(
-                key: Key('categoryManagementAction'),
-                value: _CalendarMenuAction.categoryManagement,
-                child: Text('카테고리 관리'),
-              ),
-              PopupMenuItem(
-                key: Key('settingsAction'),
-                value: _CalendarMenuAction.settings,
-                child: Text('설정'),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem(
-                key: Key('logoutAction'),
-                value: _CalendarMenuAction.signOut,
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 12),
-                    Text('로그아웃'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-        ],
+      body: SafeArea(child: child),
+      floatingActionButton: ExpandableMenuFab(
+        onSelected: (action) => _handleGlobalAction(context, action),
       ),
-      body: child,
-      floatingActionButton: FloatingActionButton(
-        key: const Key('calendarAddButton'),
-        tooltip: '추가',
-        onPressed: () => _showAddSheet(context),
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _activeIndex(location),
         onDestinationSelected: (index) => _navigateTo(context, index),
@@ -127,53 +60,17 @@ class CalendarShellPage extends ConsumerWidget {
     context.go(route);
   }
 
-  void _handleMenuAction(
+  void _handleGlobalAction(
     BuildContext context,
-    WidgetRef ref,
-    _CalendarMenuAction action,
+    DailyGlobalAction action,
   ) {
-    switch (action) {
-      case _CalendarMenuAction.routineManagement:
-        _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
-      case _CalendarMenuAction.categoryManagement:
-        _showMessage(context, '카테고리 관리 화면은 다음 작업에서 제공됩니다.');
-      case _CalendarMenuAction.settings:
-        _showMessage(context, '설정 화면은 다음 작업에서 제공됩니다.');
-      case _CalendarMenuAction.signOut:
-        ref.read(authViewModelProvider.notifier).signOut();
-    }
-  }
-
-  Future<void> _showAddSheet(BuildContext context) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              key: const Key('addEventAction'),
-              leading: const Icon(Icons.event_outlined),
-              title: const Text('일정 추가'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _showMessage(context, '일정 추가 화면은 다음 작업에서 제공됩니다.');
-              },
-            ),
-            ListTile(
-              key: const Key('addTodoAction'),
-              leading: const Icon(Icons.check_box_outlined),
-              title: const Text('투두 추가'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _showMessage(context, '투두 추가 화면은 다음 작업에서 제공됩니다.');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+    final message = switch (action) {
+      DailyGlobalAction.add => '새 항목 추가 화면은 다음 작업에서 제공됩니다.',
+      DailyGlobalAction.routine => '루틴 관리 화면은 다음 작업에서 제공됩니다.',
+      DailyGlobalAction.category => '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
+      DailyGlobalAction.settings => '설정 화면은 다음 작업에서 제공됩니다.',
+    };
+    _showMessage(context, message);
   }
 
   void _showMessage(BuildContext context, String message) {
