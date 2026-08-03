@@ -70,28 +70,33 @@ class _NewItemPageState extends State<NewItemPage> {
                           const SizedBox(height: 28),
                           const _FieldLabel('제목'),
                           const SizedBox(height: 8),
-                          TextField(
-                            key: const Key('newItemTitleField'),
-                            controller: _titleController,
-                            autofocus: false,
-                            textInputAction: TextInputAction.done,
-                            decoration: InputDecoration(
-                              hintText: _kind == NewItemKind.event
-                                  ? '일정 제목'
-                                  : 'Todo 제목',
-                              filled: true,
-                              fillColor: Colors.white,
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFD0D5DD),
+                          Semantics(
+                            key: const Key('newItemTitleSemantics'),
+                            label: '제목',
+                            textField: true,
+                            child: TextField(
+                              key: const Key('newItemTitleField'),
+                              controller: _titleController,
+                              autofocus: false,
+                              textInputAction: TextInputAction.done,
+                              decoration: InputDecoration(
+                                hintText: _kind == NewItemKind.event
+                                    ? '일정 제목'
+                                    : 'Todo 제목',
+                                filled: true,
+                                fillColor: Colors.white,
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFD0D5DD),
+                                  ),
                                 ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: _navy,
-                                  width: 1.5,
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: _navy,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ),
