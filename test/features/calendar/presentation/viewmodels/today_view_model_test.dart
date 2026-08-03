@@ -283,7 +283,9 @@ void main() {
 
       final after = harness.container.read(todayViewModelProvider).requireValue;
       expect(returned, same(failure));
-      expect(after, same(before));
+      expect(after.overview.date, before.overview.date);
+      expect(after.isOverdueExpanded, before.isOverdueExpanded);
+      expect(after.isCompletedExpanded, before.isCompletedExpanded);
       expect(_ids(after.overview.overdueTodos), [original.id]);
       expect(after.overview.completedTodos, isEmpty);
       expect(after.pendingTodoIds, isEmpty);
@@ -322,6 +324,129 @@ void main() {
       harness.toggleUseCase.completeNext(success(original));
       expect(await first, isNull);
       expect(harness.toggleUseCase.calls, [original.id]);
+    });
+
+    test('a failed concurrent toggle restores only its own todo', () async {
+      const failure = CacheFailure('todo A failed');
+      final todoA = _task(id: 'todo-a', targetDate: selectedDate);
+      final todoB = _task(id: 'todo-b', targetDate: selectedDate);
+      final harness = _Harness(
+        initialDate: selectedDate,
+        overviewForDate: (_) => _overview(
+          selectedDate,
+          untimedTodos: [_entry(todoA), _entry(todoB)],
+        ),
+      );
+      await harness.container.read(todayViewModelProvider.future);
+      final notifier = harness.container.read(todayViewModelProvider.notifier);
+
+      final pendingA = notifier.toggleTodo(todoA.id);
+      final pendingB = notifier.toggleTodo(todoB.id);
+      expect(
+        harness.container
+            .read(todayViewModelProvider)
+            .requireValue
+            .pendingTodoIds,
+        {todoA.id, todoB.id},
+      );
+
+      harness.toggleUseCase.completeFor(todoB.id, success(todoB));
+      expect(await pendingB, isNull);
+      harness.toggleUseCase.completeFor(todoA.id, fail(failure));
+      expect(await pendingA, same(failure));
+
+      final after = harness.container.read(todayViewModelProvider).requireValue;
+      expect(_ids(after.overview.untimedTodos), [todoA.id]);
+      expect(_ids(after.overview.completedTodos), [todoB.id]);
+      expect(after.pendingTodoIds, isEmpty);
+      expect(harness.toggleUseCase.calls, [todoA.id, todoB.id]);
+      _expectExclusive(after.overview);
+    });
+
+    test('late failure never overwrites a same-date refetch', () async {
+      const failure = CacheFailure('late toggle failed');
+      final todoA = _task(id: 'refetched-a', targetDate: selectedDate);
+      final repositoryTodo = _task(
+        id: 'repository-todo',
+        targetDate: selectedDate,
+      );
+      var refetched = false;
+      final refetchedOverview = _overview(
+        selectedDate,
+        completedTodos: [_entry(todoA)],
+        untimedTodos: [_entry(repositoryTodo)],
+      );
+      final harness = _Harness(
+        initialDate: selectedDate,
+        loadResult: (_) async => success(
+          refetched
+              ? refetchedOverview
+              : _overview(
+                  selectedDate,
+                  untimedTodos: [_entry(todoA)],
+                ),
+        ),
+      );
+      await harness.container.read(todayViewModelProvider.future);
+      final notifier = harness.container.read(todayViewModelProvider.notifier);
+      final pending = notifier.toggleTodo(todoA.id);
+
+      refetched = true;
+      notifier.retry();
+      final reloaded =
+          await harness.container.read(todayViewModelProvider.future);
+      expect(reloaded.overview, same(refetchedOverview));
+      expect(reloaded.pendingTodoIds, isEmpty);
+
+      harness.toggleUseCase.completeFor(todoA.id, fail(failure));
+      expect(await pending, same(failure));
+
+      final after = harness.container.read(todayViewModelProvider).requireValue;
+      expect(after.overview, same(refetchedOverview));
+      expect(_ids(after.overview.completedTodos), [todoA.id]);
+      expect(_ids(after.overview.untimedTodos), [repositoryTodo.id]);
+      expect(after.pendingTodoIds, isEmpty);
+      _expectExclusive(after.overview);
+    });
+
+    test('completed timed todo re-enters timeline in canonical order',
+        () async {
+      final earlier = _task(
+        id: 'earlier',
+        targetDate: selectedDate,
+        isCompleted: true,
+        hasTime: true,
+        startDateTime: DateTime(2026, 8, 3, 9),
+        endDateTime: DateTime(2026, 8, 3, 10),
+      );
+      final later = _task(
+        id: 'later',
+        targetDate: selectedDate,
+        hasTime: true,
+        startDateTime: DateTime(2026, 8, 3, 14),
+        endDateTime: DateTime(2026, 8, 3, 15),
+      );
+      final harness = _Harness(
+        initialDate: selectedDate,
+        overviewForDate: (_) => _overview(
+          selectedDate,
+          timelineItems: [_entry(later)],
+          completedTodos: [_entry(earlier)],
+        ),
+      );
+      await harness.container.read(todayViewModelProvider.future);
+
+      final pending = harness.container
+          .read(todayViewModelProvider.notifier)
+          .toggleTodo(earlier.id);
+
+      final optimistic =
+          harness.container.read(todayViewModelProvider).requireValue;
+      expect(_ids(optimistic.overview.timelineItems), [earlier.id, later.id]);
+      _expectExclusive(optimistic.overview);
+
+      harness.toggleUseCase.completeFor(earlier.id, success(earlier));
+      expect(await pending, isNull);
     });
 
     test('failure after a date change never restores stale Today state',
@@ -443,18 +568,29 @@ class _ControllableToggleCompleteUseCase extends ToggleCompleteUseCase {
   _ControllableToggleCompleteUseCase() : super(_UnusedTaskRepository());
 
   final List<String> calls = [];
-  final Queue<Completer<Result<Task>>> _pending = Queue();
+  final Map<String, Queue<Completer<Result<Task>>>> _pendingById = {};
 
   @override
   Future<Result<Task>> call(String id) {
     calls.add(id);
     final completer = Completer<Result<Task>>();
-    _pending.add(completer);
+    _pendingById.putIfAbsent(id, Queue.new).add(completer);
     return completer.future;
   }
 
   void completeNext(Result<Task> result) {
-    _pending.removeFirst().complete(result);
+    final id =
+        _pendingById.entries.firstWhere((entry) => entry.value.isNotEmpty).key;
+    completeFor(id, result);
+  }
+
+  void completeFor(String id, Result<Task> result) {
+    final pending = _pendingById[id];
+    if (pending == null || pending.isEmpty) {
+      throw StateError('No pending completion for $id');
+    }
+    pending.removeFirst().complete(result);
+    if (pending.isEmpty) _pendingById.remove(id);
   }
 }
 
