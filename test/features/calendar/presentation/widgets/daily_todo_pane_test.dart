@@ -46,6 +46,7 @@ void main() {
       ),
     ];
     String? toggledId;
+    var toggleCalls = 0;
 
     await _pump(
       tester,
@@ -54,7 +55,10 @@ void main() {
         selectedDate: selectedDate,
         isCompact: false,
         pendingTodoIds: const {},
-        onToggleTodo: (id) => toggledId = id,
+        onToggleTodo: (id) {
+          toggledId = id;
+          toggleCalls++;
+        },
       ),
       size: const Size(390, 220),
     );
@@ -96,6 +100,10 @@ void main() {
     expect(tester.getSize(checkbox), const Size(48, 48));
     await tester.tap(checkbox);
     expect(toggledId, 'untimed');
+    expect(toggleCalls, 1);
+
+    await tester.tap(find.text('장보기 목록 확인'));
+    expect(toggleCalls, 2);
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
@@ -246,6 +254,53 @@ void main() {
     expect(
         find.byKey(const Key('dailyTodoTimelineOverflow-570')), findsOneWidget);
     expect(find.text('+2'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('expanded overlapping Todos keep their real start time',
+      (tester) async {
+    final entries = [
+      _todo(
+        id: 'overlap-a',
+        title: '같은 시각 할 일 A',
+        targetDate: selectedDate,
+        category: blue,
+        start: DateTime(2026, 8, 3, 9, 30),
+        end: DateTime(2026, 8, 3, 10),
+      ),
+      _todo(
+        id: 'overlap-b',
+        title: '같은 시각 할 일 B',
+        targetDate: selectedDate,
+        category: green,
+        start: DateTime(2026, 8, 3, 9, 30),
+        end: DateTime(2026, 8, 3, 10, 30),
+      ),
+    ];
+
+    await _pump(
+      tester,
+      DailyTodoTimeline(
+        entries: entries,
+        isCompact: false,
+        pendingTodoIds: const {},
+        onToggleTodo: (_) {},
+      ),
+      size: const Size(390, dailyCalendarTimelineHeight),
+    );
+
+    final surfaceTop =
+        tester.getTopLeft(find.byKey(const Key('dailyTodoTimelineSurface'))).dy;
+    final firstRect = tester.getRect(
+      find.byKey(const Key('dailyTodoTimelineEntry-overlap-a')),
+    );
+    final secondRect = tester.getRect(
+      find.byKey(const Key('dailyTodoTimelineEntry-overlap-b')),
+    );
+
+    expect(firstRect.top - surfaceTop, 9.5 * dailyCalendarHourExtent);
+    expect(secondRect.top - surfaceTop, 9.5 * dailyCalendarHourExtent);
+    expect(firstRect.center.dx, isNot(secondRect.center.dx));
     expect(tester.takeException(), isNull);
   });
 
