@@ -35,67 +35,73 @@ class _NewItemPageState extends State<NewItemPage> {
   Widget build(BuildContext context) {
     final date = widget.selectedDate.toLocal();
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Column(
-              children: [
-                _Header(onClose: widget.onClose),
-                const Divider(height: 1, color: Color(0xFFE4E7EC)),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const _FieldLabel('날짜'),
-                        const SizedBox(height: 8),
-                        _FixedDate(date: date),
-                        const SizedBox(height: 28),
-                        const _FieldLabel('종류'),
-                        const SizedBox(height: 8),
-                        _KindSelector(
-                          selected: _kind,
-                          onSelected: (kind) => setState(() => _kind = kind),
-                        ),
-                        const SizedBox(height: 28),
-                        const _FieldLabel('제목'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          key: const Key('newItemTitleField'),
-                          controller: _titleController,
-                          autofocus: false,
-                          textInputAction: TextInputAction.done,
-                          decoration: InputDecoration(
-                            hintText: _kind == NewItemKind.event
-                                ? '일정 제목'
-                                : 'Todo 제목',
-                            filled: true,
-                            fillColor: Colors.white,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFD0D5DD),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) widget.onClose();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Column(
+                children: [
+                  _Header(onClose: widget.onClose),
+                  const Divider(height: 1, color: Color(0xFFE4E7EC)),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _FieldLabel('날짜'),
+                          const SizedBox(height: 8),
+                          _FixedDate(date: date),
+                          const SizedBox(height: 28),
+                          const _FieldLabel('종류'),
+                          const SizedBox(height: 8),
+                          _KindSelector(
+                            selected: _kind,
+                            onSelected: (kind) => setState(() => _kind = kind),
+                          ),
+                          const SizedBox(height: 28),
+                          const _FieldLabel('제목'),
+                          const SizedBox(height: 8),
+                          TextField(
+                            key: const Key('newItemTitleField'),
+                            controller: _titleController,
+                            autofocus: false,
+                            textInputAction: TextInputAction.done,
+                            decoration: InputDecoration(
+                              hintText: _kind == NewItemKind.event
+                                  ? '일정 제목'
+                                  : 'Todo 제목',
+                              filled: true,
+                              fillColor: Colors.white,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD0D5DD),
+                                ),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: _navy,
-                                width: 1.5,
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: _navy,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
