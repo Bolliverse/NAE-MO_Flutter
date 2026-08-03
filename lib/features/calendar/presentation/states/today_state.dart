@@ -6,12 +6,12 @@ class TodayState {
   final bool isCompletedExpanded;
   final Set<String> pendingTodoIds;
 
-  const TodayState({
+  TodayState({
     required this.overview,
     this.isOverdueExpanded = false,
     this.isCompletedExpanded = false,
-    this.pendingTodoIds = const {},
-  });
+    Set<String> pendingTodoIds = const {},
+  }) : pendingTodoIds = Set.unmodifiable(pendingTodoIds);
 
   TodayState copyWith({
     TodayOverview? overview,
