@@ -7,6 +7,8 @@ class TaskMapper {
   Task toEntity(TaskTableData data) => Task(
         id: data.id,
         title: data.title,
+        kind: data.kind,
+        targetDate: data.targetDate,
         categoryId: data.categoryId,
         isCompleted: data.isCompleted,
         hasTime: data.hasTime,

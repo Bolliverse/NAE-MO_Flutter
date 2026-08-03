@@ -30,6 +30,10 @@ class AuthFailure extends Failure {
   ]);
 }
 
+class ValidationFailure extends Failure {
+  const ValidationFailure(super.message);
+}
+
 class UnauthorizedFailure extends Failure {
   const UnauthorizedFailure([super.message = '인증이 필요합니다.']);
 }

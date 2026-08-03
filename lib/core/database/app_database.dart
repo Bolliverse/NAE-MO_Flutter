@@ -1,17 +1,20 @@
 import 'package:drift/drift.dart';
 import 'package:nae_mo/core/database/connection/connection.dart' as conn;
+import 'package:nae_mo/core/database/app_database.steps.dart';
 import 'package:nae_mo/core/database/tables/category_table.dart';
 import 'package:nae_mo/core/database/tables/task_table.dart';
+import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:uuid/uuid.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(tables: [CategoryTable, TaskTable])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(conn.openConnection());
+  AppDatabase([QueryExecutor? executor])
+      : super(executor ?? conn.openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -19,6 +22,62 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await _seedDefaultCategories();
         },
+        onUpgrade: stepByStep(
+          from1To2: (m, schema) async {
+            await m.alterTable(
+              TableMigration(
+                schema.tasks,
+                newColumns: [
+                  schema.tasks.kind,
+                  schema.tasks.targetDate,
+                ],
+                columnTransformer: {
+                  schema.tasks.kind: const CustomExpression<String>(
+                    "CASE WHEN is_all_day = 1 THEN 'event' ELSE 'todo' END",
+                  ),
+                  schema.tasks.targetDate: const CustomExpression<DateTime>('''
+                    CAST(strftime(
+                      '%s', datetime(
+                        COALESCE(start_date_time, created_at),
+                        'unixepoch', 'localtime', 'start of day', 'utc'
+                      )
+                    ) AS INTEGER)
+                  '''),
+                  schema.tasks.isCompleted: const CustomExpression<bool>(
+                    'CASE WHEN is_all_day = 1 THEN 0 ELSE is_completed END',
+                  ),
+                  schema.tasks.hasTime: const CustomExpression<bool>('''
+                    CASE
+                      WHEN is_all_day = 1 OR start_date_time IS NULL
+                        OR end_date_time IS NULL
+                        OR end_date_time <= start_date_time
+                      THEN 0 ELSE has_time
+                    END
+                  '''),
+                  schema.tasks.startDateTime:
+                      const CustomExpression<DateTime>('''
+                    CASE
+                      WHEN is_all_day = 1 OR has_time = 0
+                        OR start_date_time IS NULL
+                        OR end_date_time IS NULL
+                        OR end_date_time <= start_date_time
+                      THEN NULL ELSE start_date_time
+                    END
+                  '''),
+                  schema.tasks.endDateTime: const CustomExpression<DateTime>('''
+                    CASE
+                      WHEN is_all_day = 1 OR has_time = 0
+                        OR start_date_time IS NULL
+                        OR end_date_time IS NULL
+                        OR end_date_time <= start_date_time
+                      THEN NULL ELSE end_date_time
+                    END
+                  '''),
+                },
+              ),
+            );
+          },
+        ),
       );
 
   Future<void> _seedDefaultCategories() async {
