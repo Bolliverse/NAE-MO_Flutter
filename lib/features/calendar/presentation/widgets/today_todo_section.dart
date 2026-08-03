@@ -6,7 +6,6 @@ class TodayTodoSection extends StatelessWidget {
   final List<TodayEntry> entries;
   final Set<String> pendingTodoIds;
   final ValueChanged<String> onToggleTodo;
-  final String? emptyMessage;
   final bool isCompletedPresentation;
   final bool? isExpanded;
   final VoidCallback? onToggleExpanded;
@@ -17,7 +16,6 @@ class TodayTodoSection extends StatelessWidget {
     required this.entries,
     required this.pendingTodoIds,
     required this.onToggleTodo,
-    this.emptyMessage,
     this.isCompletedPresentation = false,
     this.isExpanded,
     this.onToggleExpanded,
@@ -29,6 +27,8 @@ class TodayTodoSection extends StatelessWidget {
     final colors = theme.colorScheme;
     final isCollapsible = isExpanded != null && onToggleExpanded != null;
     final showRows = !isCollapsible || isExpanded!;
+    final emptyMessage =
+        isCompletedPresentation ? '완료한 할 일이 없어요.' : '시간이 정해지지 않은 할 일이 없어요.';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -78,11 +78,11 @@ class TodayTodoSection extends StatelessWidget {
               ),
             ),
           ),
-          if (showRows && entries.isEmpty && emptyMessage != null)
+          if (showRows && entries.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
               child: Text(
-                emptyMessage!,
+                emptyMessage,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),
