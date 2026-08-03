@@ -363,28 +363,31 @@ class _TodoCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      key: Key('dailyTodoCheckbox-$taskId'),
-      behavior: HitTestBehavior.opaque,
-      onTap: isEnabled ? onTap : null,
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: Center(
-          child: Opacity(
-            opacity: isEnabled ? 1 : .45,
-            child: Container(
-              key: Key('dailyTodoCheckVisual-$taskId'),
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: isCompleted ? color : Colors.white,
-                borderRadius: BorderRadius.circular(5),
-                border: Border.all(color: color, width: 2.5),
+    return KeyedSubtree(
+      key: Key('todayTodoCheckbox-$taskId'),
+      child: GestureDetector(
+        key: Key('dailyTodoCheckbox-$taskId'),
+        behavior: HitTestBehavior.opaque,
+        onTap: isEnabled ? onTap : null,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: Opacity(
+              opacity: isEnabled ? 1 : .45,
+              child: Container(
+                key: Key('dailyTodoCheckVisual-$taskId'),
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: isCompleted ? color : Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: color, width: 2.5),
+                ),
+                child: isCompleted
+                    ? const Icon(Icons.check, size: 20, color: Colors.white)
+                    : null,
               ),
-              child: isCompleted
-                  ? const Icon(Icons.check, size: 20, color: Colors.white)
-                  : null,
             ),
           ),
         ),
