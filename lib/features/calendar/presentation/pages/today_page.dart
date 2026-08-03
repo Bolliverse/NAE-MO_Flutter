@@ -285,7 +285,6 @@ class _PanePresentation extends StatelessWidget {
       if (isTimeline) return expanded;
       return SingleChildScrollView(
         primary: false,
-        physics: const NeverScrollableScrollPhysics(),
         child: expanded,
       );
     }
