@@ -28,8 +28,10 @@ class FirebaseAuthSessionRemoteDataSource
             final idToken = await _google.authenticate();
             if (idToken == null) return null;
             user = await _firebase.signInWithGoogleIdToken(idToken);
+            break;
           case AuthProviderType.apple:
             user = await _firebase.signInWithApple();
+            break;
         }
         return _mapUser(user);
       });
