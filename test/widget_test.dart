@@ -12,6 +12,9 @@ import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/auth/auth_providers.dart';
 import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
 import 'package:nae_mo/features/auth/domain/repositories/auth_session_repository.dart';
+import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
+import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_case.dart';
+import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
 import 'package:nae_mo/features/task/data/repositories/task_repository_provider.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart' as domain;
 import 'package:nae_mo/features/task/domain/repositories/task_repository.dart';
@@ -36,16 +39,15 @@ void main() {
     final authRepository = _FakeAuthSessionRepository();
     await _pumpApp(tester, authRepository);
 
-    _routerOf(tester).go(AppRoutes.day);
+    _routerOf(tester).go(AppRoutes.today);
     await tester.pumpAndSettle();
 
-    expect(find.text('NAE MO'), findsOneWidget);
-    expect(find.text('Task Dock'), findsNothing);
+    expect(find.byKey(const Key('googleSignInButton')), findsOneWidget);
+    expect(find.byKey(const Key('todayContent')), findsNothing);
   });
 
   for (final provider in AuthProviderType.values) {
-    testWidgets('${provider.name} login opens the day calendar',
-        (tester) async {
+    testWidgets('${provider.name} login opens Today', (tester) async {
       final authRepository = _FakeAuthSessionRepository();
       await _pumpApp(tester, authRepository);
 
@@ -57,8 +59,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(authRepository.storedProvider, provider);
-      expect(find.text('Task Dock'), findsOneWidget);
-      expect(find.text('NAE MO'), findsNothing);
+      expect(find.byKey(const Key('todayContent')), findsOneWidget);
+      expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+          AppRoutes.today);
+      expect(find.byKey(const Key('googleSignInButton')), findsNothing);
     });
   }
 
@@ -86,11 +90,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Task Dock'), findsOneWidget);
-    expect(find.text('NAE MO'), findsNothing);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('googleSignInButton')), findsNothing);
   });
 
-  testWidgets('redirects an authenticated login route to the day calendar',
+  testWidgets('redirects an authenticated login route to Today',
       (tester) async {
     final authRepository = _FakeAuthSessionRepository(
       storedProvider: AuthProviderType.apple,
@@ -100,8 +106,10 @@ void main() {
     _routerOf(tester).go(AppRoutes.login);
     await tester.pumpAndSettle();
 
-    expect(find.text('Task Dock'), findsOneWidget);
-    expect(find.text('NAE MO'), findsNothing);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('googleSignInButton')), findsNothing);
   });
 
   testWidgets('logout clears the session and returns to login', (tester) async {
@@ -113,8 +121,8 @@ void main() {
     await _tapLogout(tester);
 
     expect(authRepository.storedProvider, isNull);
-    expect(find.text('NAE MO'), findsOneWidget);
-    expect(find.text('Task Dock'), findsNothing);
+    expect(find.byKey(const Key('googleSignInButton')), findsOneWidget);
+    expect(find.byKey(const Key('todayContent')), findsNothing);
   });
 
   testWidgets('failed login remains on login and shows the error',
@@ -140,8 +148,8 @@ void main() {
     await tester.tap(find.byKey(const Key('googleSignInButton')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Task Dock'), findsNothing);
-    expect(find.text('NAE MO'), findsOneWidget);
+    expect(find.byKey(const Key('todayContent')), findsNothing);
+    expect(find.byKey(const Key('googleSignInButton')), findsOneWidget);
     expect(
       find.text('로그인하지 못했습니다. 잠시 후 다시 시도해 주세요.'),
       findsNothing,
@@ -169,37 +177,154 @@ void main() {
     await _tapLogout(tester);
 
     expect(authRepository.storedProvider, AuthProviderType.apple);
-    expect(find.text('Task Dock'), findsOneWidget);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
     expect(find.text('로그아웃 실패'), findsOneWidget);
   });
 
-  testWidgets('mobile calendar moves view switching into the overflow menu',
+  testWidgets('legacy day route redirects an authenticated user to Today',
       (tester) async {
-    tester.view
-      ..physicalSize = const Size(390, 844)
-      ..devicePixelRatio = 1;
-    addTearDown(() {
-      tester.view
-        ..resetPhysicalSize()
-        ..resetDevicePixelRatio();
-    });
     final authRepository = _FakeAuthSessionRepository(
       storedProvider: AuthProviderType.google,
     );
-
     await _pumpApp(tester, authRepository);
 
-    expect(tester.takeException(), isNull);
-    expect(find.byType(SegmentedButton), findsNothing);
+    _routerOf(tester).go(AppRoutes.day);
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+  });
+
+  testWidgets('bottom navigation switches Today, Week, and Month routes',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        0);
+
+    await tester.tap(find.byKey(const Key('calendarWeekDestination')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+    expect(find.text('Week View'), findsOneWidget);
+    expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        1);
+
+    await tester.tap(find.byKey(const Key('calendarMonthDestination')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.month);
+    expect(find.text('Month View'), findsOneWidget);
+    expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        2);
+
+    await tester.tap(find.byKey(const Key('calendarTodayDestination')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+  });
+
+  testWidgets('overflow contains only management actions and logout',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
 
     await tester.tap(find.byKey(const Key('calendarMoreMenu')));
     await tester.pumpAndSettle();
 
-    expect(find.text('일 보기'), findsOneWidget);
-    expect(find.text('주 보기'), findsOneWidget);
-    expect(find.text('월 보기'), findsOneWidget);
+    expect(find.text('루틴 관리'), findsOneWidget);
+    expect(find.text('카테고리 관리'), findsOneWidget);
+    expect(find.text('설정'), findsOneWidget);
     expect(find.text('로그아웃'), findsOneWidget);
+    expect(find.text('일 보기'), findsNothing);
+    expect(find.text('주 보기'), findsNothing);
+    expect(find.text('월 보기'), findsNothing);
   });
+
+  for (final action in const {
+    'routineManagementAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
+    'categoryManagementAction': '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
+    'settingsAction': '설정 화면은 다음 작업에서 제공됩니다.',
+  }.entries) {
+    testWidgets('${action.key} stays on the route and shows a placeholder',
+        (tester) async {
+      await _pumpApp(
+        tester,
+        _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+      );
+
+      await tester.tap(find.byKey(const Key('calendarMoreMenu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(Key(action.key)));
+      await tester.pump();
+
+      expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+          AppRoutes.today);
+      expect(find.text(action.value), findsOneWidget);
+    });
+  }
+
+  for (final action in const {
+    'addEventAction': '일정 추가 화면은 다음 작업에서 제공됩니다.',
+    'addTodoAction': '투두 추가 화면은 다음 작업에서 제공됩니다.',
+  }.entries) {
+    testWidgets('FAB ${action.key} closes the sheet and keeps the route',
+        (tester) async {
+      await _pumpApp(
+        tester,
+        _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+      );
+
+      await tester.tap(find.byKey(const Key('calendarAddButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('일정 추가'), findsOneWidget);
+      expect(find.text('투두 추가'), findsOneWidget);
+      expect(find.text('루틴 관리'), findsNothing);
+
+      await tester.tap(find.byKey(Key(action.key)));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+          AppRoutes.today);
+      expect(find.text(action.value), findsOneWidget);
+    });
+  }
+
+  for (final size in const [Size(390, 844), Size(1200, 900)]) {
+    testWidgets('calendar shell fits ${size.width.toInt()}px', (tester) async {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view
+          ..resetPhysicalSize()
+          ..resetDevicePixelRatio();
+      });
+
+      await _pumpApp(
+        tester,
+        _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('NAE MO'), findsOneWidget);
+      expect(find.byKey(const Key('calendarAddButton')), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+  }
 
   testWidgets('login remains usable with large system text', (tester) async {
     tester.view
@@ -265,7 +390,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Task Dock'), findsOneWidget);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
     semantics.dispose();
   });
 }
@@ -280,6 +405,9 @@ Future<void> _pumpApp(
       overrides: [
         authSessionRepositoryProvider.overrideWithValue(authRepository),
         taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
+        getTodayOverviewUseCaseProvider.overrideWithValue(
+          _EmptyTodayOverviewUseCase(),
+        ),
       ],
       child: const App(),
     ),
@@ -409,3 +537,25 @@ class _EmptyTaskRepository implements TaskRepository {
   Future<Result<domain.Task>> toggleComplete(String id) =>
       throw UnimplementedError();
 }
+
+class _EmptyTodayOverviewUseCase extends GetTodayOverviewUseCase {
+  _EmptyTodayOverviewUseCase()
+      : super(_EmptyTaskRepository(), _UnusedCategoryRepository());
+
+  @override
+  Future<Result<TodayOverview>> call(DateTime selectedDate) async {
+    final local = selectedDate.toLocal();
+    return success(
+      TodayOverview(
+        date: DateTime(local.year, local.month, local.day),
+        overdueTodos: const [],
+        allDayEvents: const [],
+        timelineItems: const [],
+        untimedTodos: const [],
+        completedTodos: const [],
+      ),
+    );
+  }
+}
+
+class _UnusedCategoryRepository extends Fake implements CategoryRepository {}
