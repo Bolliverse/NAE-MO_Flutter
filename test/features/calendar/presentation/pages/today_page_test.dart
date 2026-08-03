@@ -204,8 +204,14 @@ void main() {
       find.byKey(const Key('dailyCalendarCompactAllDay-0')),
       findsNothing,
     );
-    expect(find.byKey(const Key('todayEntry-timeline')), findsNothing);
-    expect(find.byKey(const Key('todayEntry-untimed')), findsNothing);
+    expect(
+      find.byKey(const Key('dailyTodoCompactPinned-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoCompactTimed-timeline')),
+      findsOneWidget,
+    );
 
     final scrollable = find.descendant(
       of: find.byKey(const Key('dailyTimelineScroll')),
@@ -237,8 +243,16 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('todayEntry-timeline')), findsOneWidget);
-    expect(find.byKey(const Key('todayEntry-untimed')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dailyTodoTimelineEntry-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoTimelineEntry-completed-timed')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('dailyTodoEntry-untimed')), findsOneWidget);
+    expect(find.byKey(const Key('dailyTodoEntry-completed')), findsOneWidget);
     expect(
       find.byKey(const Key('todayTodoCheckbox-untimed')),
       findsOneWidget,
@@ -398,7 +412,9 @@ void main() {
     await harness.container.read(todayViewModelProvider.future);
     await tester.pump();
     expect(
-        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+      find.byKey(const Key('dailyTodoTimelineEntry-new-date-content')),
+      findsOneWidget,
+    );
 
     harness.toggleUseCase.complete(fail(failure));
     await tester.pump();
@@ -406,7 +422,9 @@ void main() {
 
     expect(find.text(failure.message), findsNothing);
     expect(
-        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+      find.byKey(const Key('dailyTodoTimelineEntry-new-date-content')),
+      findsOneWidget,
+    );
     expect(harness.container.read(selectedDateProvider), nextDate);
   });
 
@@ -571,6 +589,14 @@ TodayOverview _populatedOverview(DateTime date) {
         kind: TaskKind.todo,
         targetDate: date,
         isCompleted: true,
+      ),
+      _entry(
+        id: 'completed-timed',
+        kind: TaskKind.todo,
+        targetDate: date,
+        isCompleted: true,
+        start: DateTime(date.year, date.month, date.day, 10),
+        end: DateTime(date.year, date.month, date.day, 11),
       ),
     ],
   );
