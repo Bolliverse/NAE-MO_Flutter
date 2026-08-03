@@ -112,6 +112,20 @@ void main() {
     expect(find.byKey(const Key('googleSignInButton')), findsNothing);
   });
 
+  testWidgets('logout inside Settings clears the session and returns to login',
+      (tester) async {
+    final authRepository = _FakeAuthSessionRepository(
+      storedProvider: AuthProviderType.google,
+    );
+    await _pumpApp(tester, authRepository);
+
+    await _openSettingsAndTapLogout(tester);
+
+    expect(authRepository.storedProvider, isNull);
+    expect(find.byKey(const Key('googleSignInButton')), findsOneWidget);
+    expect(find.byKey(const Key('todayContent')), findsNothing);
+  });
+
   testWidgets('failed login remains on login and shows the error',
       (tester) async {
     final authRepository = _FakeAuthSessionRepository(
@@ -151,6 +165,21 @@ void main() {
       ),
     );
     semantics.dispose();
+  });
+
+  testWidgets('failed Settings logout stays signed in and shows a SnackBar',
+      (tester) async {
+    final authRepository = _FakeAuthSessionRepository(
+      storedProvider: AuthProviderType.apple,
+      signOutFailure: const AuthFailure('로그아웃 실패'),
+    );
+    await _pumpApp(tester, authRepository);
+
+    await _openSettingsAndTapLogout(tester);
+
+    expect(authRepository.storedProvider, AuthProviderType.apple);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(find.text('로그아웃 실패'), findsOneWidget);
   });
 
   testWidgets('legacy day route redirects an authenticated user to Today',
@@ -230,7 +259,6 @@ void main() {
     'globalAddAction': '새 항목 추가 화면은 다음 작업에서 제공됩니다.',
     'globalRoutineAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
     'globalCategoryAction': '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
-    'globalSettingsAction': '설정 화면은 다음 작업에서 제공됩니다.',
   }.entries) {
     testWidgets('${action.key} stays on the route and shows a placeholder',
         (tester) async {
@@ -250,6 +278,24 @@ void main() {
       expect(find.byKey(Key(action.key)), findsNothing);
     });
   }
+
+  testWidgets('Settings global action opens a sheet with logout inside',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalSettingsAction')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settingsSheet')), findsOneWidget);
+    expect(find.text('설정'), findsOneWidget);
+    expect(find.byKey(const Key('logoutAction')), findsOneWidget);
+    expect(find.text('로그아웃'), findsOneWidget);
+  });
 
   testWidgets('calendar shell resolves its primary chrome to white',
       (tester) async {
@@ -395,11 +441,21 @@ GoRouter _routerOf(WidgetTester tester) {
   return container.read(appRouterProvider);
 }
 
+Future<void> _openSettingsAndTapLogout(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('globalSettingsAction')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('logoutAction')));
+  await tester.pumpAndSettle();
+}
+
 class _FakeAuthSessionRepository implements AuthSessionRepository {
   AuthProviderType? storedProvider;
   final Completer<Result<AuthSession>>? restoreCompleter;
   final Completer<Result<AuthSession>>? signInCompleter;
   final Failure? signInFailure;
+  final Failure? signOutFailure;
   final bool cancelSignIn;
 
   int signInCalls = 0;
@@ -409,6 +465,7 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
     this.restoreCompleter,
     this.signInCompleter,
     this.signInFailure,
+    this.signOutFailure,
     this.cancelSignIn = false,
   });
 
@@ -442,6 +499,8 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
 
   @override
   Future<Result<AuthSession>> signOut() async {
+    final failure = signOutFailure;
+    if (failure != null) return fail(failure);
     storedProvider = null;
     return success(const UnauthenticatedSession());
   }
