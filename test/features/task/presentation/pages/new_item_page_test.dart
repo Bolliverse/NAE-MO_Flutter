@@ -64,6 +64,23 @@ void main() {
     );
   });
 
+  testWidgets('keeps a stable accessibility label after title entry',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester);
+
+    await tester.enterText(
+      find.byKey(const Key('newItemTitleField')),
+      '리뷰 요청 보내기',
+    );
+
+    expect(
+      tester.getSemantics(find.byKey(const Key('newItemTitleSemantics'))).label,
+      contains('제목'),
+    );
+    semantics.dispose();
+  });
+
   testWidgets('close button reports one close request', (tester) async {
     var closeCalls = 0;
     await _pump(tester, onClose: () => closeCalls++);
