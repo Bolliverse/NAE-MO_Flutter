@@ -37,6 +37,7 @@ class CalendarShellPage extends ConsumerWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.surface,
+        centerTitle: false,
         elevation: 0,
         title: const Text('NAE MO'),
         actions: [
