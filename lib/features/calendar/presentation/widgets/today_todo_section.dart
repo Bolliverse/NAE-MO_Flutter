@@ -38,41 +38,51 @@ class TodayTodoSection extends StatelessWidget {
         children: [
           Material(
             color: Colors.transparent,
-            child: InkWell(
+            child: Semantics(
+              key: isCollapsible ? const Key('todayCompletedHeader') : null,
+              container: isCollapsible,
+              excludeSemantics: isCollapsible,
+              label: isCollapsible ? '$title, ${entries.length}개' : null,
+              hint: isCollapsible ? (isExpanded! ? '목록 접기' : '목록 펼치기') : null,
+              button: isCollapsible ? true : null,
+              expanded: isCollapsible ? isExpanded : null,
               onTap: isCollapsible ? onToggleExpanded : null,
-              borderRadius: BorderRadius.circular(10),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: colors.onSurface,
-                            fontWeight: FontWeight.w700,
+              child: InkWell(
+                onTap: isCollapsible ? onToggleExpanded : null,
+                borderRadius: BorderRadius.circular(10),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colors.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${entries.length}개',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
+                        const SizedBox(width: 8),
+                        Text(
+                          '${entries.length}개',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      if (isCollapsible) ...[
-                        const SizedBox(width: 4),
-                        Icon(
-                          isExpanded! ? Icons.expand_less : Icons.expand_more,
-                          color: colors.onSurfaceVariant,
-                        ),
+                        if (isCollapsible) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            isExpanded! ? Icons.expand_less : Icons.expand_more,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
