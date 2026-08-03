@@ -44,5 +44,21 @@ void main() {
         throwsUnsupportedError,
       );
     });
+
+    test('constructor defensively freezes pending todo IDs', () {
+      final pendingTodoIds = <String>{'todo-1'};
+
+      final state = TodayState(
+        overview: overview,
+        pendingTodoIds: pendingTodoIds,
+      );
+      pendingTodoIds.add('todo-2');
+
+      expect(state.pendingTodoIds, {'todo-1'});
+      expect(
+        () => state.pendingTodoIds.add('todo-3'),
+        throwsUnsupportedError,
+      );
+    });
   });
 }
