@@ -95,6 +95,46 @@ void main() {
     expect(harness.loadUseCase.calls, [initialDate, initialDate]);
   });
 
+  testWidgets('unexpected load errors hide raw exception details',
+      (tester) async {
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (_) async => throw StateError('private repository detail'),
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    expect(find.text('오늘 일정을 불러올 수 없어요.'), findsOneWidget);
+    expect(find.text('잠시 후 다시 시도해주세요.'), findsOneWidget);
+    expect(find.textContaining('Bad state:'), findsNothing);
+    expect(find.textContaining('private repository detail'), findsNothing);
+  });
+
+  testWidgets('error stays scrollable and retryable with large text',
+      (tester) async {
+    _setSurfaceSize(tester, const Size(390, 240));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(
+      tester.platformDispatcher.clearTextScaleFactorTestValue,
+    );
+    const failure = CacheFailure(
+      '오늘 일정 데이터를 불러오지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해주세요.',
+    );
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (_) async => fail(failure),
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final retry = find.byKey(const Key('todayRetryButton'));
+    expect(retry, findsOneWidget);
+    await tester.ensureVisible(retry);
+    await tester.pumpAndSettle();
+    expect(retry.hitTestable(), findsOneWidget);
+  });
+
   testWidgets('loaded sections keep one fixed order and exclusive entry keys',
       (tester) async {
     _setSurfaceSize(tester, const Size(1200, 1400));
@@ -265,6 +305,65 @@ void main() {
     expect(state.overview.untimedTodos.single.task.id, 'rollback');
     expect(state.pendingTodoIds, isEmpty);
     expect(find.text(failure.message), findsOneWidget);
+  });
+
+  testWidgets('late toggle failure stays silent after navigating to a new date',
+      (tester) async {
+    const failure = CacheFailure('이전 날짜 저장 실패');
+    final nextDate = DateTime(2026, 8, 4);
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (date) async {
+        if (date == initialDate) {
+          return success(
+            _overview(
+              date,
+              untimedTodos: [
+                _entry(
+                  id: 'old-date-todo',
+                  kind: TaskKind.todo,
+                  targetDate: date,
+                ),
+              ],
+            ),
+          );
+        }
+        return success(
+          _overview(
+            date,
+            timelineItems: [
+              _entry(
+                id: 'new-date-content',
+                kind: TaskKind.event,
+                targetDate: date,
+                start: DateTime(2026, 8, 4, 9),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('todayTodoCheckbox-old-date-todo')),
+    );
+    await tester.pump();
+    harness.container.read(selectedDateProvider.notifier).select(nextDate);
+    await harness.container.read(todayViewModelProvider.future);
+    await tester.pump();
+    expect(
+        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+
+    harness.toggleUseCase.complete(fail(failure));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text(failure.message), findsNothing);
+    expect(
+        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+    expect(harness.container.read(selectedDateProvider), nextDate);
   });
 
   for (final size in const [Size(390, 844), Size(1200, 900)]) {
