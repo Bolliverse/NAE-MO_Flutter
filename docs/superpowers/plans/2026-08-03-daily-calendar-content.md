@@ -10,11 +10,13 @@
 ## PR 경계
 
 이 PR은 `codex/daily-split-shell`을 base로 한다. Todo 표현, 완료 토글 UI, FAB와
-설정 흐름은 수정하지 않는다. 변경 파일은 아래 7개, 1.5K 변경 줄 이내를 목표로 한다.
+설정 흐름은 수정하지 않는다. 변경 파일은 아래 9개, 1.5K 변경 줄 이내를 목표로 한다.
 
 - `docs/superpowers/plans/2026-08-03-daily-calendar-content.md`
 - `test/features/calendar/presentation/widgets/daily_calendar_pane_test.dart`
 - `lib/features/calendar/presentation/widgets/daily_calendar_pane.dart`
+- `test/features/calendar/presentation/widgets/daily_split_scaffold_test.dart`
+- `lib/features/calendar/presentation/widgets/daily_split_scaffold.dart`
 - `test/features/calendar/presentation/pages/today_page_test.dart`
 - `lib/features/calendar/presentation/pages/today_page.dart`
 - `docs/design/evidence/pr-daily-calendar-content/calendar-mobile.png`
@@ -49,6 +51,7 @@
 - 고정 영역용 `DailyCalendarPinned`을 구현한다.
 - 시간 영역용 `DailyCalendarTimeline`을 구현한다.
 - 시간축은 0시부터 24시까지 고정된 hour extent로 그려 두 패널 공용 스크롤과 정렬한다.
+- 분할 셸에 초기 시간축 offset을 전달해 첫 화면은 오전 8시 부근에서 시작한다.
 - 카테고리가 없으면 중립색을 사용한다.
 
 구현 파일만 커밋하고 위젯 테스트를 통과시킨다.
@@ -69,4 +72,3 @@ page 테스트와 구현은 각각 한 파일씩 커밋한다.
 - Flutter web 390px/1200px 렌더링 및 브라우저 예외 확인
 - 모바일·웹 이미지를 각각 한 파일씩 커밋
 - base 대비 파일 수와 변경 줄 확인 후 스택 PR 생성
-
