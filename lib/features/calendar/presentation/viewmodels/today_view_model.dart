@@ -12,17 +12,25 @@ part 'today_view_model.g.dart';
 
 @riverpod
 class TodayViewModel extends _$TodayViewModel {
-  final Map<String, Object> _latestToggleOperations = {};
+  final Set<String> _pendingToggleIds = {};
+  int _viewRevision = 0;
 
   @override
   Future<TodayState> build() async {
+    _viewRevision += 1;
     final selectedDate = ref.watch(selectedDateProvider);
     final result = await ref.read(getTodayOverviewUseCaseProvider)(
       selectedDate,
     );
 
     return result.fold(
-      onSuccess: (overview) => TodayState(overview: overview),
+      onSuccess: (overview) => TodayState(
+        overview: overview,
+        pendingTodoIds: {
+          for (final taskId in _pendingToggleIds)
+            if (_findTodo(overview, taskId) != null) taskId,
+        },
+      ),
       onFailure: (failure) => throw failure,
     );
   }
@@ -53,15 +61,17 @@ class TodayViewModel extends _$TodayViewModel {
 
   Future<Failure?> toggleTodo(String taskId) async {
     final previous = state.valueOrNull;
-    if (previous == null || previous.pendingTodoIds.contains(taskId)) {
+    if (previous == null ||
+        previous.pendingTodoIds.contains(taskId) ||
+        _pendingToggleIds.contains(taskId)) {
       return null;
     }
 
     final optimistic = _toggleCompletion(previous, taskId);
     if (optimistic == null) return null;
 
-    final operation = Object();
-    _latestToggleOperations[taskId] = operation;
+    final operationRevision = _viewRevision;
+    _pendingToggleIds.add(taskId);
 
     state = AsyncData(
       optimistic.copyWith(
@@ -70,18 +80,15 @@ class TodayViewModel extends _$TodayViewModel {
     );
 
     final result = await ref.read(toggleCompleteUseCaseProvider)(taskId);
-    if (!identical(_latestToggleOperations[taskId], operation)) {
-      return null;
-    }
-    _latestToggleOperations.remove(taskId);
+    _pendingToggleIds.remove(taskId);
 
     final failure = result.failure;
     if (failure != null) {
       final current = state.valueOrNull;
-      if (current != null &&
-          current.overview.date == previous.overview.date &&
-          current.pendingTodoIds.contains(taskId)) {
-        final reverted = _restoreCompletion(current, previous, taskId);
+      if (current != null && current.overview.date == previous.overview.date) {
+        final reverted = operationRevision == _viewRevision
+            ? _restoreCompletion(current, previous, taskId)
+            : current;
         state = AsyncData(
           reverted.copyWith(
             pendingTodoIds: {...reverted.pendingTodoIds}..remove(taskId),
@@ -93,14 +100,14 @@ class TodayViewModel extends _$TodayViewModel {
 
     final current = state.valueOrNull;
     if (current != null && current.overview.date == previous.overview.date) {
-      if (current.pendingTodoIds.contains(taskId)) {
+      final desired = _findTodo(optimistic.overview, taskId);
+      if (desired != null) {
+        final reconciled = _rebuildWithTodo(current, desired);
         state = AsyncData(
-          current.copyWith(
-            pendingTodoIds: {...current.pendingTodoIds}..remove(taskId),
+          reconciled.copyWith(
+            pendingTodoIds: {...reconciled.pendingTodoIds}..remove(taskId),
           ),
         );
-      } else {
-        ref.invalidateSelf();
       }
     }
     return null;
