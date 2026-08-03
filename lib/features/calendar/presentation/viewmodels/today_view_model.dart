@@ -82,14 +82,16 @@ class TodayViewModel extends _$TodayViewModel {
     }
 
     final current = state.valueOrNull;
-    if (current != null &&
-        current.overview.date == previous.overview.date &&
-        current.pendingTodoIds.contains(taskId)) {
-      state = AsyncData(
-        current.copyWith(
-          pendingTodoIds: {...current.pendingTodoIds}..remove(taskId),
-        ),
-      );
+    if (current != null && current.overview.date == previous.overview.date) {
+      if (current.pendingTodoIds.contains(taskId)) {
+        state = AsyncData(
+          current.copyWith(
+            pendingTodoIds: {...current.pendingTodoIds}..remove(taskId),
+          ),
+        );
+      } else {
+        ref.invalidateSelf();
+      }
     }
     return null;
   }
