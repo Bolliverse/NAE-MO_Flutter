@@ -186,21 +186,50 @@ void main() {
     expect(find.byKey(const Key('dailyCalendarTimeline')), findsOneWidget);
     expect(find.byKey(const Key('dailyTodoTimeline')), findsOneWidget);
 
-    expect(find.byKey(const Key('todayEntry-all-day')), findsOneWidget);
     expect(
-      find.byKey(const Key('todayEntry-calendar-timeline')),
+      find.byKey(const Key('dailyCalendarAllDay-all-day')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-calendar-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarCompactAllDay-0')),
+      findsNothing,
     );
     expect(find.byKey(const Key('todayEntry-timeline')), findsNothing);
     expect(find.byKey(const Key('todayEntry-untimed')), findsNothing);
 
+    final scrollable = find.descendant(
+      of: find.byKey(const Key('dailyTimelineScroll')),
+      matching: find.byType(Scrollable),
+    );
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      8 * 80,
+    );
+
     await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('todayEntry-all-day')), findsNothing);
     expect(
-      find.byKey(const Key('todayEntry-calendar-timeline')),
+      find.byKey(const Key('dailyCalendarAllDay-all-day')),
       findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-calendar-timeline')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarCompactAllDay-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key('dailyCalendarCompactEvent-calendar-timeline'),
+      ),
+      findsOneWidget,
     );
     expect(find.byKey(const Key('todayEntry-timeline')), findsOneWidget);
     expect(find.byKey(const Key('todayEntry-untimed')), findsOneWidget);
@@ -236,8 +265,7 @@ void main() {
     await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
     await tester.pumpAndSettle();
 
-    final lastTodo =
-        find.byKey(const Key('todayTodoCheckbox-overflow-7'));
+    final lastTodo = find.byKey(const Key('todayTodoCheckbox-overflow-7'));
     expect(lastTodo, findsOneWidget);
     expect(lastTodo.hitTestable(), findsNothing);
 
