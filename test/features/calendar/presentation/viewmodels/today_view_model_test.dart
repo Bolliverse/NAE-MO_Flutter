@@ -326,12 +326,17 @@ void main() {
       expect(harness.toggleUseCase.calls, [original.id]);
     });
 
-    test('older success cannot clear a newer same-todo toggle after reload',
+    test('same-todo persistence cannot overlap after a date round trip',
         () async {
       final nextDate = DateTime(2026, 8, 4);
       final original = _task(
-        id: 'reloaded-same-todo-success',
+        id: 'single-persistence-success',
         targetDate: selectedDate,
+      );
+      final completed = _task(
+        id: original.id,
+        targetDate: selectedDate,
+        isCompleted: true,
       );
       final harness = _Harness(
         initialDate: selectedDate,
@@ -352,36 +357,35 @@ void main() {
           .select(selectedDate);
       await harness.container.read(todayViewModelProvider.future);
 
-      final newer = harness.container
-          .read(todayViewModelProvider.notifier)
-          .toggleTodo(original.id);
-      harness.toggleUseCase.completeFor(original.id, success(original));
-      expect(await older, isNull);
-
-      final afterOlder =
-          harness.container.read(todayViewModelProvider).requireValue;
-      expect(_ids(afterOlder.overview.untimedTodos), isEmpty);
-      expect(_ids(afterOlder.overview.completedTodos), [original.id]);
-      expect(afterOlder.pendingTodoIds, {original.id});
-
-      harness.toggleUseCase.completeFor(original.id, success(original));
-      expect(await newer, isNull);
       expect(
         harness.container
             .read(todayViewModelProvider)
             .requireValue
             .pendingTodoIds,
-        isEmpty,
+        {original.id},
       );
+      final duplicate = harness.container
+          .read(todayViewModelProvider.notifier)
+          .toggleTodo(original.id);
+      await Future<void>.delayed(Duration.zero);
+      expect(harness.toggleUseCase.calls, [original.id]);
+
+      harness.toggleUseCase.completeFor(original.id, success(completed));
+      expect(await older, isNull);
+      expect(await duplicate, isNull);
+
+      final after = harness.container.read(todayViewModelProvider).requireValue;
+      expect(_ids(after.overview.untimedTodos), isEmpty);
+      expect(_ids(after.overview.completedTodos), [original.id]);
+      expect(after.pendingTodoIds, isEmpty);
     });
 
-    test(
-        'older failure cannot roll back or surface over a newer same-todo toggle',
+    test('same-todo failure has no second persistence result to conflict with',
         () async {
-      const staleFailure = CacheFailure('older toggle failed');
+      const failure = CacheFailure('toggle failed');
       final nextDate = DateTime(2026, 8, 4);
       final original = _task(
-        id: 'reloaded-same-todo-failure',
+        id: 'single-persistence-failure',
         targetDate: selectedDate,
       );
       final harness = _Harness(
@@ -403,27 +407,20 @@ void main() {
           .select(selectedDate);
       await harness.container.read(todayViewModelProvider.future);
 
-      final newer = harness.container
+      final duplicate = harness.container
           .read(todayViewModelProvider.notifier)
           .toggleTodo(original.id);
-      harness.toggleUseCase.completeFor(original.id, fail(staleFailure));
-      expect(await older, isNull);
+      await Future<void>.delayed(Duration.zero);
+      expect(harness.toggleUseCase.calls, [original.id]);
 
-      final afterOlder =
-          harness.container.read(todayViewModelProvider).requireValue;
-      expect(_ids(afterOlder.overview.untimedTodos), isEmpty);
-      expect(_ids(afterOlder.overview.completedTodos), [original.id]);
-      expect(afterOlder.pendingTodoIds, {original.id});
+      harness.toggleUseCase.completeFor(original.id, fail(failure));
+      expect(await older, same(failure));
+      expect(await duplicate, isNull);
 
-      harness.toggleUseCase.completeFor(original.id, success(original));
-      expect(await newer, isNull);
-      expect(
-        harness.container
-            .read(todayViewModelProvider)
-            .requireValue
-            .pendingTodoIds,
-        isEmpty,
-      );
+      final after = harness.container.read(todayViewModelProvider).requireValue;
+      expect(_ids(after.overview.untimedTodos), [original.id]);
+      expect(after.overview.completedTodos, isEmpty);
+      expect(after.pendingTodoIds, isEmpty);
     });
 
     test('a failed concurrent toggle restores only its own todo', () async {
