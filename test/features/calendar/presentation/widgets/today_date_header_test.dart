@@ -33,7 +33,16 @@ void main() {
     final selectedCenter = tester.getCenter(
       find.byKey(const Key('todayDate-2026-07-29')),
     );
-    expect(selectedCenter.dx, closeTo(400, 0.1));
+    final firstCenter = tester.getCenter(
+      find.byKey(const Key('todayDate-2026-07-26')),
+    );
+    final lastCenter = tester.getCenter(
+      find.byKey(const Key('todayDate-2026-08-01')),
+    );
+    expect(
+      selectedCenter.dx,
+      closeTo((firstCenter.dx + lastCenter.dx) / 2, 0.1),
+    );
   });
 
   testWidgets('marks the selected date as an accessible button',
@@ -84,6 +93,36 @@ void main() {
     expect(selectedDate!.second, 0);
   });
 
+  testWidgets('keeps all seven date targets at least 48dp wide at 360px',
+      (tester) async {
+    tester.view
+      ..physicalSize = const Size(360, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
+
+    await _pumpHeader(tester);
+
+    const dateKeys = [
+      'todayDate-2026-07-26',
+      'todayDate-2026-07-27',
+      'todayDate-2026-07-28',
+      'todayDate-2026-07-29',
+      'todayDate-2026-07-30',
+      'todayDate-2026-07-31',
+      'todayDate-2026-08-01',
+    ];
+    for (final key in dateKeys) {
+      final size = tester.getSize(find.byKey(Key(key)));
+      expect(size.width, greaterThanOrEqualTo(48), reason: key);
+      expect(size.height, greaterThanOrEqualTo(48), reason: key);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('fits a 390px viewport at text scale factor 2', (tester) async {
     tester.view
       ..physicalSize = const Size(390, 844)
@@ -101,6 +140,20 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('2026년 7월'), findsOneWidget);
     expect(find.text('29일 수요일'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.text('2026년 7월'),
+        matching: find.byType(FittedBox),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.ancestor(
+        of: find.text('29일 수요일'),
+        matching: find.byType(FittedBox),
+      ),
+      findsNothing,
+    );
     expect(find.byKey(const Key('todayDate-2026-08-01')), findsOneWidget);
   });
 }
