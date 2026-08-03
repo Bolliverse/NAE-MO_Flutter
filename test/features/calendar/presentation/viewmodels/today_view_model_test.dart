@@ -493,7 +493,7 @@ void main() {
       final reloaded =
           await harness.container.read(todayViewModelProvider.future);
       expect(reloaded.overview, same(refetchedOverview));
-      expect(reloaded.pendingTodoIds, isEmpty);
+      expect(reloaded.pendingTodoIds, {todoA.id});
 
       harness.toggleUseCase.completeFor(todoA.id, fail(failure));
       expect(await pending, same(failure));
@@ -506,7 +506,7 @@ void main() {
       _expectExclusive(after.overview);
     });
 
-    test('late success refreshes a stale same-date refetch', () async {
+    test('late success reconciles a stale same-date refetch', () async {
       final incomplete = _task(
         id: 'late-success',
         targetDate: selectedDate,
@@ -535,7 +535,7 @@ void main() {
       final stale = await harness.container.read(todayViewModelProvider.future);
       expect(_ids(stale.overview.untimedTodos), [incomplete.id]);
       expect(stale.overview.completedTodos, isEmpty);
-      expect(stale.pendingTodoIds, isEmpty);
+      expect(stale.pendingTodoIds, {incomplete.id});
 
       persisted = true;
       harness.toggleUseCase.completeFor(
@@ -547,7 +547,6 @@ void main() {
           await harness.container.read(todayViewModelProvider.future);
 
       expect(harness.loadUseCase.calls, [
-        selectedDate,
         selectedDate,
         selectedDate,
       ]);
