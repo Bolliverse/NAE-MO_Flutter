@@ -281,7 +281,14 @@ class _PanePresentation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!layout.isCompact) return expanded;
+    if (!layout.isCompact) {
+      if (isTimeline) return expanded;
+      return SingleChildScrollView(
+        primary: false,
+        physics: const NeverScrollableScrollPhysics(),
+        child: expanded,
+      );
+    }
 
     const surface = DecoratedBox(
       decoration: BoxDecoration(
