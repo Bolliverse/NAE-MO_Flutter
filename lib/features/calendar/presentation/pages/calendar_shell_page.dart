@@ -135,12 +135,16 @@ class CalendarShellPage extends ConsumerWidget {
     switch (action) {
       case _CalendarMenuAction.routineManagement:
         _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
+        break;
       case _CalendarMenuAction.categoryManagement:
         _showMessage(context, '카테고리 관리 화면은 다음 작업에서 제공됩니다.');
+        break;
       case _CalendarMenuAction.settings:
         _showMessage(context, '설정 화면은 다음 작업에서 제공됩니다.');
+        break;
       case _CalendarMenuAction.signOut:
         ref.read(authViewModelProvider.notifier).signOut();
+        break;
     }
   }
 
