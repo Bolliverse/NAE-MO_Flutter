@@ -65,75 +65,85 @@ class _ExpandableMenuFabState extends State<ExpandableMenuFab>
   Widget build(BuildContext context) {
     return TapRegion(
       onTapOutside: (_) => _close(),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            reverseDuration: const Duration(milliseconds: 120),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SizeTransition(
-                sizeFactor: animation,
-                axisAlignment: 1,
-                child: child,
+      child: SizedBox(
+        width: 240,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              reverseDuration: const Duration(milliseconds: 120),
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
               ),
-            ),
-            child: _isOpen
-                ? Padding(
-                    key: const Key('globalActionsMenu'),
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        for (final item in _menuItems) ...[
-                          _ActionButton(
-                            item: item,
-                            color: _navy,
-                            onTap: () => _select(item.action),
-                          ),
-                          if (item != _menuItems.last)
-                            const SizedBox(height: 8),
-                        ],
-                      ],
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          Semantics(
-            key: const Key('calendarGlobalMenuButton'),
-            label: _isOpen ? '메뉴 닫기' : '메뉴 열기',
-            button: true,
-            onTap: _toggle,
-            child: ExcludeSemantics(
-              child: Material(
-                color: _navy,
-                elevation: 7,
-                shadowColor: Colors.black45,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SizeTransition(
+                  sizeFactor: animation,
+                  axisAlignment: 1,
+                  child: child,
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: _toggle,
-                  child: SizedBox.square(
-                    dimension: 60,
-                    child: AnimatedRotation(
-                      turns: _isOpen ? 0.25 : 0,
-                      duration: const Duration(milliseconds: 180),
-                      child: Icon(
-                        _isOpen ? Icons.close_rounded : Icons.menu_rounded,
-                        color: Colors.white,
-                        size: 30,
+              ),
+              child: _isOpen
+                  ? Padding(
+                      key: const Key('globalActionsMenu'),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          for (final item in _menuItems) ...[
+                            _ActionButton(
+                              item: item,
+                              color: _navy,
+                              onTap: () => _select(item.action),
+                            ),
+                            if (item != _menuItems.last)
+                              const SizedBox(height: 8),
+                          ],
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            Semantics(
+              key: const Key('calendarGlobalMenuButton'),
+              label: _isOpen ? '메뉴 닫기' : '메뉴 열기',
+              button: true,
+              onTap: _toggle,
+              child: ExcludeSemantics(
+                child: Material(
+                  color: _navy,
+                  elevation: 7,
+                  shadowColor: Colors.black45,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: _toggle,
+                    child: SizedBox.square(
+                      dimension: 60,
+                      child: AnimatedRotation(
+                        turns: _isOpen ? 0.25 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(
+                          _isOpen ? Icons.close_rounded : Icons.menu_rounded,
+                          color: Colors.white,
+                          size: 30,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
