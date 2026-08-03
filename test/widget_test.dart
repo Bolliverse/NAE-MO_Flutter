@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nae_mo/app.dart';
 import 'package:nae_mo/core/errors/failure.dart';
+import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/core/router/app_router.dart';
 import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/auth/auth_providers.dart';
@@ -256,7 +257,6 @@ void main() {
   });
 
   for (final action in const {
-    'globalAddAction': '새 항목 추가 화면은 다음 작업에서 제공됩니다.',
     'globalRoutineAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
     'globalCategoryAction': '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
   }.entries) {
@@ -278,6 +278,41 @@ void main() {
       expect(find.byKey(Key(action.key)), findsNothing);
     });
   }
+
+  testWidgets('new item action opens one shell and returns to the same Daily',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(App)),
+      listen: false,
+    );
+    container.read(selectedDateProvider.notifier).select(DateTime(2030, 4, 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.add);
+    expect(find.text('2030년 4월 5일'), findsOneWidget);
+    expect(find.byKey(const Key('newItemEventKind')), findsOneWidget);
+    expect(find.byKey(const Key('newItemTodoKind')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('calendarGlobalMenuButton')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('newItemCloseButton')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(find.text('4/5'), findsOneWidget);
+  });
 
   testWidgets('Settings global action opens a sheet with logout inside',
       (tester) async {
