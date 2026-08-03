@@ -121,69 +121,79 @@ class _OverdueTodoRow extends StatelessWidget {
         ? colors.onSurfaceVariant
         : Color(category.color).withAlpha(255);
 
-    return Container(
+    return Semantics(
       key: Key('todayEntry-${entry.task.id}'),
-      constraints: const BoxConstraints(minHeight: 56),
-      padding: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: colors.onErrorContainer.withAlpha(20)),
-        ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: Checkbox(
-              key: Key('todayTodoCheckbox-${entry.task.id}'),
-              value: entry.task.isCompleted,
-              onChanged: isPending ? null : (_) => onToggleTodo(entry.task.id),
-              activeColor: accent,
-            ),
+      container: true,
+      excludeSemantics: true,
+      label:
+          '${entry.task.title}, ${TodayOverdueSection._date(entry.task.targetDate)}',
+      checked: entry.task.isCompleted,
+      enabled: !isPending,
+      onTap: isPending ? null : () => onToggleTodo(entry.task.id),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: colors.onErrorContainer.withAlpha(20)),
           ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    entry.task.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 2,
-                    children: [
-                      Text(
-                        TodayOverdueSection._date(entry.task.targetDate),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                      if (category != null)
-                        Text(
-                          category.name,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: accent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: Checkbox(
+                key: Key('todayTodoCheckbox-${entry.task.id}'),
+                value: entry.task.isCompleted,
+                onChanged:
+                    isPending ? null : (_) => onToggleTodo(entry.task.id),
+                activeColor: accent,
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      entry.task.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 2,
+                      children: [
+                        Text(
+                          TodayOverdueSection._date(entry.task.targetDate),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                        if (category != null)
+                          Text(
+                            category.name,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
