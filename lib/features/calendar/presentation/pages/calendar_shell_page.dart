@@ -85,7 +85,7 @@ class CalendarShellPage extends ConsumerWidget {
       {required bool isSubmitting}) {
     switch (action) {
       case DailyGlobalAction.add:
-        _showMessage(context, '새 항목 추가 화면은 다음 작업에서 제공됩니다.');
+        context.go(AppRoutes.add);
       case DailyGlobalAction.routine:
         _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
       case DailyGlobalAction.category:
