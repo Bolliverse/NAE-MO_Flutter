@@ -211,6 +211,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('expanded Todo pinned content stays overflow-free on mobile',
+      (tester) async {
+    _setSurfaceSize(tester, const Size(390, 844));
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (date) async => success(
+        _overview(
+          date,
+          untimedTodos: [
+            for (var index = 0; index < 8; index++)
+              _entry(
+                id: 'overflow-$index',
+                kind: TaskKind.todo,
+                targetDate: date,
+              ),
+          ],
+        ),
+      ),
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('date controls update the shared selected date exactly',
       (tester) async {
     final harness = _PageHarness(
