@@ -192,21 +192,24 @@ class DailyTodoTimeline extends StatelessWidget {
     return [
       for (var index = 0; index < group.entries.length; index++)
         Positioned(
-          top: group.entries[index].startMinute / 60 * dailyCalendarHourExtent +
-              index * 50,
+          top: group.entries[index].startMinute / 60 * dailyCalendarHourExtent,
           left: 52,
           right: 8,
           height: 56,
-          child: _TodoRow(
-            key: Key(
-              'dailyTodoTimelineEntry-${group.entries[index].entry.task.id}',
+          child: _CompactSlot(
+            index: index,
+            count: group.entries.length,
+            child: _TodoRow(
+              key: Key(
+                'dailyTodoTimelineEntry-${group.entries[index].entry.task.id}',
+              ),
+              entry: group.entries[index].entry,
+              isPending: pendingTodoIds.contains(
+                group.entries[index].entry.task.id,
+              ),
+              onToggleTodo: onToggleTodo,
+              metadata: _time(group.entries[index].entry.task.startDateTime!),
             ),
-            entry: group.entries[index].entry,
-            isPending: pendingTodoIds.contains(
-              group.entries[index].entry.task.id,
-            ),
-            onToggleTodo: onToggleTodo,
-            metadata: _time(group.entries[index].entry.task.startDateTime!),
           ),
         ),
     ];
