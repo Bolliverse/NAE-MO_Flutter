@@ -67,14 +67,24 @@ class TodayViewModel extends _$TodayViewModel {
     final result = await ref.read(toggleCompleteUseCaseProvider)(taskId);
     final failure = result.failure;
     if (failure != null) {
-      if (state.valueOrNull?.overview.date == previous.overview.date) {
-        state = AsyncData(previous);
+      final current = state.valueOrNull;
+      if (current != null &&
+          current.overview.date == previous.overview.date &&
+          current.pendingTodoIds.contains(taskId)) {
+        final reverted = _restoreCompletion(current, previous, taskId);
+        state = AsyncData(
+          reverted.copyWith(
+            pendingTodoIds: {...reverted.pendingTodoIds}..remove(taskId),
+          ),
+        );
       }
       return failure;
     }
 
     final current = state.valueOrNull;
-    if (current != null && current.overview.date == previous.overview.date) {
+    if (current != null &&
+        current.overview.date == previous.overview.date &&
+        current.pendingTodoIds.contains(taskId)) {
       state = AsyncData(
         current.copyWith(
           pendingTodoIds: {...current.pendingTodoIds}..remove(taskId),
@@ -89,32 +99,54 @@ TodayState? _toggleCompletion(TodayState state, String taskId) {
   final source = _findTodo(state.overview, taskId);
   if (source == null) return null;
 
-  final overview = state.overview;
   final toggled = TodayEntry(
     task: _copyWithInverseCompletion(source.task),
     category: source.category,
   );
+
+  return _rebuildWithTodo(state, toggled);
+}
+
+TodayState _restoreCompletion(
+  TodayState current,
+  TodayState previous,
+  String taskId,
+) {
+  final original = _findTodo(previous.overview, taskId);
+  if (original == null) return current;
+
+  return _rebuildWithTodo(current, original);
+}
+
+TodayState _rebuildWithTodo(TodayState state, TodayEntry todo) {
+  final overview = state.overview;
+  final taskId = todo.task.id;
   final overdueTodos = _withoutTask(overview.overdueTodos, taskId);
   final allDayEvents = _withoutTask(overview.allDayEvents, taskId);
   final timelineItems = _withoutTask(overview.timelineItems, taskId);
   final untimedTodos = _withoutTask(overview.untimedTodos, taskId);
   final completedTodos = _withoutTask(overview.completedTodos, taskId);
-  final targetDate = _localDate(toggled.task.targetDate);
+  final targetDate = _localDate(todo.task.targetDate);
   final selectedDate = _localDate(overview.date);
 
-  if (toggled.task.isCompleted) {
+  if (todo.task.isCompleted) {
     if (targetDate == selectedDate) {
-      completedTodos.add(toggled);
+      completedTodos.add(todo);
     }
   } else if (targetDate.isBefore(selectedDate)) {
-    overdueTodos.add(toggled);
+    overdueTodos.add(todo);
   } else if (targetDate == selectedDate) {
-    if (toggled.task.hasTime) {
-      timelineItems.add(toggled);
+    if (todo.task.hasTime) {
+      timelineItems.add(todo);
     } else {
-      untimedTodos.add(toggled);
+      untimedTodos.add(todo);
     }
   }
+
+  overdueTodos.sort(_compareOverdue);
+  timelineItems.sort(_compareTimeline);
+  untimedTodos.sort(_compareByCategoryThenCreated);
+  completedTodos.sort(_compareByCreated);
 
   return state.copyWith(
     overview: TodayOverview(
@@ -168,4 +200,56 @@ Task _copyWithInverseCompletion(Task task) {
 DateTime _localDate(DateTime value) {
   final local = value.toLocal();
   return DateTime(local.year, local.month, local.day);
+}
+
+int _compareOverdue(TodayEntry left, TodayEntry right) {
+  final targetDate = _localDate(left.task.targetDate).compareTo(
+    _localDate(right.task.targetDate),
+  );
+  if (targetDate != 0) return targetDate;
+
+  return _compareByCreated(left, right);
+}
+
+int _compareTimeline(TodayEntry left, TodayEntry right) {
+  final start = _compareNullableDateTime(
+    left.task.startDateTime,
+    right.task.startDateTime,
+  );
+  if (start != 0) return start;
+
+  final end = _compareNullableDateTime(
+    left.task.endDateTime,
+    right.task.endDateTime,
+  );
+  if (end != 0) return end;
+
+  return left.task.id.compareTo(right.task.id);
+}
+
+int _compareByCategoryThenCreated(TodayEntry left, TodayEntry right) {
+  final leftCategory = left.category;
+  final rightCategory = right.category;
+  if (leftCategory == null && rightCategory != null) return 1;
+  if (leftCategory != null && rightCategory == null) return -1;
+  if (leftCategory != null && rightCategory != null) {
+    final sortOrder = leftCategory.sortOrder.compareTo(rightCategory.sortOrder);
+    if (sortOrder != 0) return sortOrder;
+  }
+
+  return _compareByCreated(left, right);
+}
+
+int _compareNullableDateTime(DateTime? left, DateTime? right) {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+  return left.compareTo(right);
+}
+
+int _compareByCreated(TodayEntry left, TodayEntry right) {
+  final createdAt = left.task.createdAt.compareTo(right.task.createdAt);
+  if (createdAt != 0) return createdAt;
+
+  return left.task.id.compareTo(right.task.id);
 }
