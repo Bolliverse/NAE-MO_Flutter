@@ -4,6 +4,7 @@ import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/features/calendar/presentation/states/today_state.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/daily_split_scaffold.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_all_day_section.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_date_header.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_overdue_section.dart';
@@ -22,9 +23,7 @@ class TodayPage extends ConsumerWidget {
       key: const Key('todayDateHeader'),
       selectedDate: selectedDate,
       onPrevious: () => selectedDateNotifier.addDays(-1),
-      onToday: selectedDateNotifier.goToToday,
       onNext: () => selectedDateNotifier.addDays(1),
-      onSelectDate: selectedDateNotifier.select,
     );
 
     return today.when(
@@ -158,6 +157,12 @@ class _TodayContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final overview = state.overview;
+    final calendarTimeline = overview.timelineItems
+        .where((entry) => entry.task.isEvent)
+        .toList(growable: false);
+    final todoTimeline = overview.timelineItems
+        .where((entry) => entry.task.isTodo)
+        .toList(growable: false);
 
     Future<void> toggleTodo(String taskId) async {
       final initiatingDate = overview.date;
@@ -177,52 +182,117 @@ class _TodayContent extends ConsumerWidget {
     }
 
     return _TodayPageFrame(
-      child: ListView(
+      child: KeyedSubtree(
         key: const Key('todayContent'),
-        padding: const EdgeInsets.only(bottom: 128),
-        children: [
-          dateHeader,
-          TodayOverdueSection(
-            key: const Key('todayOverdueSection'),
-            entries: overview.overdueTodos,
-            isExpanded: state.isOverdueExpanded,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleExpanded:
-                ref.read(todayViewModelProvider.notifier).toggleOverdueSection,
-            onToggleTodo: toggleTodo,
+        child: DailySplitScaffold(
+          key: const Key('dailySplitScaffold'),
+          header: dateHeader,
+          pinnedHeight: 220,
+          calendarPinnedBuilder: (context, layout) => _PanePresentation(
+            key: const Key('dailyCalendarPinned'),
+            layout: layout,
+            expanded: TodayAllDaySection(
+              key: const Key('todayAllDaySection'),
+              entries: overview.allDayEvents,
+            ),
           ),
-          TodayAllDaySection(
-            key: const Key('todayAllDaySection'),
-            entries: overview.allDayEvents,
+          todoPinnedBuilder: (context, layout) => _PanePresentation(
+            key: const Key('dailyTodoPinned'),
+            layout: layout,
+            expanded: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TodayOverdueSection(
+                  key: const Key('todayOverdueSection'),
+                  entries: overview.overdueTodos,
+                  isExpanded: state.isOverdueExpanded,
+                  pendingTodoIds: state.pendingTodoIds,
+                  onToggleExpanded: ref
+                      .read(todayViewModelProvider.notifier)
+                      .toggleOverdueSection,
+                  onToggleTodo: toggleTodo,
+                ),
+                TodayTodoSection(
+                  key: const Key('todayUntimedSection'),
+                  title: '시간 미정 할 일',
+                  entries: overview.untimedTodos,
+                  pendingTodoIds: state.pendingTodoIds,
+                  onToggleTodo: toggleTodo,
+                ),
+              ],
+            ),
           ),
-          TodayTimelineSection(
-            key: const Key('todayTimelineSection'),
-            entries: overview.timelineItems,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleTodo: toggleTodo,
+          calendarTimelineBuilder: (context, layout) => _PanePresentation(
+            key: const Key('dailyCalendarTimeline'),
+            layout: layout,
+            isTimeline: true,
+            expanded: TodayTimelineSection(
+              key: const Key('todayCalendarTimelineSection'),
+              entries: calendarTimeline,
+              pendingTodoIds: state.pendingTodoIds,
+              onToggleTodo: toggleTodo,
+            ),
           ),
-          TodayTodoSection(
-            key: const Key('todayUntimedSection'),
-            title: '시간 미정 할 일',
-            entries: overview.untimedTodos,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleTodo: toggleTodo,
+          todoTimelineBuilder: (context, layout) => _PanePresentation(
+            key: const Key('dailyTodoTimeline'),
+            layout: layout,
+            isTimeline: true,
+            expanded: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TodayTimelineSection(
+                  key: const Key('todayTodoTimelineSection'),
+                  entries: todoTimeline,
+                  pendingTodoIds: state.pendingTodoIds,
+                  onToggleTodo: toggleTodo,
+                ),
+                TodayTodoSection(
+                  key: const Key('todayCompletedSection'),
+                  title: '완료한 할 일',
+                  entries: overview.completedTodos,
+                  pendingTodoIds: state.pendingTodoIds,
+                  onToggleTodo: toggleTodo,
+                  isCompletedPresentation: true,
+                  isExpanded: state.isCompletedExpanded,
+                  onToggleExpanded: ref
+                      .read(todayViewModelProvider.notifier)
+                      .toggleCompletedSection,
+                ),
+              ],
+            ),
           ),
-          TodayTodoSection(
-            key: const Key('todayCompletedSection'),
-            title: '완료한 할 일',
-            entries: overview.completedTodos,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleTodo: toggleTodo,
-            isCompletedPresentation: true,
-            isExpanded: state.isCompletedExpanded,
-            onToggleExpanded: ref
-                .read(todayViewModelProvider.notifier)
-                .toggleCompletedSection,
-          ),
-        ],
+        ),
       ),
     );
+  }
+}
+
+class _PanePresentation extends StatelessWidget {
+  const _PanePresentation({
+    super.key,
+    required this.layout,
+    required this.expanded,
+    this.isTimeline = false,
+  });
+
+  final DailyPaneLayout layout;
+  final Widget expanded;
+  final bool isTimeline;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!layout.isCompact) return expanded;
+
+    const surface = DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.symmetric(
+          vertical: BorderSide(color: Color(0xFFE5E5E5)),
+        ),
+      ),
+    );
+    if (isTimeline) return const SizedBox(height: 960, child: surface);
+    return const SizedBox.expand(child: surface);
   }
 }
 
