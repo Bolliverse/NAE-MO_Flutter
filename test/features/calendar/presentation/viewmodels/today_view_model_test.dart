@@ -409,6 +409,57 @@ void main() {
       _expectExclusive(after.overview);
     });
 
+    test('late success refreshes a stale same-date refetch', () async {
+      final incomplete = _task(
+        id: 'late-success',
+        targetDate: selectedDate,
+      );
+      final completed = _task(
+        id: incomplete.id,
+        targetDate: selectedDate,
+        isCompleted: true,
+      );
+      var persisted = false;
+      final harness = _Harness(
+        initialDate: selectedDate,
+        loadResult: (date) async => success(
+          _overview(
+            date,
+            untimedTodos: persisted ? const [] : [_entry(incomplete)],
+            completedTodos: persisted ? [_entry(completed)] : const [],
+          ),
+        ),
+      );
+      await harness.container.read(todayViewModelProvider.future);
+      final notifier = harness.container.read(todayViewModelProvider.notifier);
+      final pending = notifier.toggleTodo(incomplete.id);
+
+      notifier.retry();
+      final stale = await harness.container.read(todayViewModelProvider.future);
+      expect(_ids(stale.overview.untimedTodos), [incomplete.id]);
+      expect(stale.overview.completedTodos, isEmpty);
+      expect(stale.pendingTodoIds, isEmpty);
+
+      persisted = true;
+      harness.toggleUseCase.completeFor(
+        incomplete.id,
+        success(completed),
+      );
+      expect(await pending, isNull);
+      final reconciled =
+          await harness.container.read(todayViewModelProvider.future);
+
+      expect(harness.loadUseCase.calls, [
+        selectedDate,
+        selectedDate,
+        selectedDate,
+      ]);
+      expect(reconciled.overview.untimedTodos, isEmpty);
+      expect(_ids(reconciled.overview.completedTodos), [incomplete.id]);
+      expect(reconciled.pendingTodoIds, isEmpty);
+      _expectExclusive(reconciled.overview);
+    });
+
     test('completed timed todo re-enters timeline in canonical order',
         () async {
       final earlier = _task(
