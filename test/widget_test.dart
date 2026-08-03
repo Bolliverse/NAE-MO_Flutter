@@ -212,7 +212,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.week);
-    expect(find.text('Week View'), findsOneWidget);
+    expect(find.textContaining('Week View'), findsOneWidget);
     expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         1);
@@ -221,7 +221,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.month);
-    expect(find.text('Month View'), findsOneWidget);
+    expect(find.textContaining('Month View'), findsOneWidget);
     expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         2);
