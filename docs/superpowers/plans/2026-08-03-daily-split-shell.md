@@ -13,8 +13,9 @@
 ## PR 경계
 
 이 계획은 `codex/today-page`를 base로 하는 첫 번째 스택 PR만 구현한다. 변경 파일은
-코드·문서 7개와 리뷰 증거 이미지 2개, 총 9개로 제한한다.
+설계·계획·코드 8개와 리뷰 증거 이미지 2개, 총 10개로 제한한다.
 
+- `docs/superpowers/specs/2026-08-03-daily-split-view-design.md`
 - `docs/superpowers/plans/2026-08-03-daily-split-shell.md`
 - `test/features/calendar/presentation/widgets/today_date_header_test.dart`
 - `lib/features/calendar/presentation/widgets/today_date_header.dart`
@@ -336,7 +337,7 @@ git diff --stat codex/today-page...HEAD
 git diff --numstat codex/today-page...HEAD
 ```
 
-Expected: 계획된 9개 파일 이내이며 총 변경 줄이 2K를 넘지 않음.
+Expected: 계획된 10개 파일 이내이며 총 변경 줄이 2K를 넘지 않음.
 
 - [ ] **Step 4: Flutter web에서 모바일·웹 화면 캡처**
 
