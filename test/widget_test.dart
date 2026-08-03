@@ -303,6 +303,16 @@ void main() {
     });
   }
 
+  testWidgets('calendar title is explicitly left aligned', (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(appBar.centerTitle, isFalse);
+  });
+
   for (final size in const [Size(390, 844), Size(1200, 900)]) {
     testWidgets('calendar shell fits ${size.width.toInt()}px', (tester) async {
       tester.view
