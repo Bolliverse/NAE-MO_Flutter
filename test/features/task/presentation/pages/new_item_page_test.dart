@@ -73,6 +73,16 @@ void main() {
     expect(closeCalls, 1);
   });
 
+  testWidgets('system back reports the same close request', (tester) async {
+    var closeCalls = 0;
+    await _pump(tester, onClose: () => closeCalls++);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(closeCalls, 1);
+  });
+
   testWidgets('fits a mobile viewport with large text', (tester) async {
     tester.view
       ..physicalSize = const Size(390, 844)
