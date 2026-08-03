@@ -314,6 +314,32 @@ void main() {
     expect(find.text('4/5'), findsOneWidget);
   });
 
+  testWidgets('new item shell closes back to its originating calendar route',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+    await tester.tap(find.byKey(const Key('calendarWeekDestination')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.add);
+
+    await tester.tap(find.byKey(const Key('newItemCloseButton')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+    expect(find.textContaining('Week View'), findsOneWidget);
+  });
+
   testWidgets('Settings global action opens a sheet with logout inside',
       (tester) async {
     await _pumpApp(
