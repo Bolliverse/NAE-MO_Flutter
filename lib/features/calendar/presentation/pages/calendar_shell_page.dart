@@ -1,21 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nae_mo/core/router/app_router.dart';
+import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
+import 'package:nae_mo/features/auth/presentation/viewmodels/auth_view_model.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/expandable_menu_fab.dart';
 
-class CalendarShellPage extends StatelessWidget {
+class CalendarShellPage extends ConsumerWidget {
   const CalendarShellPage({required this.child, super.key});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authViewModelProvider).asData?.value;
     final location = GoRouterState.of(context).matchedLocation;
+
+    ref.listen(authViewModelProvider, (previous, next) {
+      final previousError = previous?.asData?.value.errorMessage;
+      final nextState = next.asData?.value;
+      final nextError = nextState?.errorMessage;
+      final isStillSignedIn = nextState?.session is AuthenticatedSession;
+
+      if (nextError != null && nextError != previousError && isStillSignedIn) {
+        _showMessage(context, nextError);
+      }
+    });
 
     return Scaffold(
       body: SafeArea(child: child),
       floatingActionButton: ExpandableMenuFab(
-        onSelected: (action) => _handleGlobalAction(context, action),
+        onSelected: (action) => _handleGlobalAction(
+          context,
+          ref,
+          action,
+          isSubmitting: authState?.isSubmitting ?? false,
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: NavigationBar(
@@ -61,16 +81,65 @@ class CalendarShellPage extends StatelessWidget {
   }
 
   void _handleGlobalAction(
+      BuildContext context, WidgetRef ref, DailyGlobalAction action,
+      {required bool isSubmitting}) {
+    switch (action) {
+      case DailyGlobalAction.add:
+        _showMessage(context, '새 항목 추가 화면은 다음 작업에서 제공됩니다.');
+      case DailyGlobalAction.routine:
+        _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
+      case DailyGlobalAction.category:
+        _showMessage(context, '카테고리 관리 화면은 다음 작업에서 제공됩니다.');
+      case DailyGlobalAction.settings:
+        _showSettingsSheet(
+          context,
+          ref,
+          isSubmitting: isSubmitting,
+        );
+    }
+  }
+
+  Future<void> _showSettingsSheet(
     BuildContext context,
-    DailyGlobalAction action,
-  ) {
-    final message = switch (action) {
-      DailyGlobalAction.add => '새 항목 추가 화면은 다음 작업에서 제공됩니다.',
-      DailyGlobalAction.routine => '루틴 관리 화면은 다음 작업에서 제공됩니다.',
-      DailyGlobalAction.category => '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
-      DailyGlobalAction.settings => '설정 화면은 다음 작업에서 제공됩니다.',
-    };
-    _showMessage(context, message);
+    WidgetRef ref, {
+    required bool isSubmitting,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        key: const Key('settingsSheet'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '설정',
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                key: const Key('logoutAction'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                leading: const Icon(Icons.logout_rounded),
+                title: const Text('로그아웃'),
+                onTap: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.of(sheetContext).pop();
+                        ref.read(authViewModelProvider.notifier).signOut();
+                      },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showMessage(BuildContext context, String message) {
