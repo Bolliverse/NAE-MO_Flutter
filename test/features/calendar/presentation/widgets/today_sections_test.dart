@@ -135,6 +135,51 @@ void main() {
       expect(toggledId, 'enabled-overdue');
       expect(expandCalls, 1);
     });
+
+    testWidgets('exposes one labeled checkable semantic control per todo',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      String? toggledId;
+      final overdue = _entry(
+        id: 'semantic-overdue',
+        title: '보고서 제출',
+        kind: TaskKind.todo,
+        targetDate: DateTime(2026, 7, 25),
+        category: _workCategory,
+      );
+
+      await _pump(
+        tester,
+        TodayOverdueSection(
+          entries: [overdue],
+          isExpanded: true,
+          pendingTodoIds: const {},
+          onToggleExpanded: () {},
+          onToggleTodo: (id) => toggledId = id,
+        ),
+      );
+
+      const label = '보고서 제출, 7월 25일';
+      expect(find.semantics.byLabel(label), findsOne);
+      expect(
+        tester.getSemantics(
+          find.byKey(const Key('todayEntry-semantic-overdue')),
+        ),
+        matchesSemantics(
+          label: label,
+          hasCheckedState: true,
+          isChecked: false,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+
+      tester.semantics.tap(find.semantics.byLabel(label));
+      expect(toggledId, 'semantic-overdue');
+      semantics.dispose();
+    });
   });
 
   group('TodayAllDaySection', () {
@@ -267,6 +312,102 @@ void main() {
       );
       expect(toggledId, 'enabled-timed-todo');
     });
+
+    testWidgets('converts UTC start and end times to local display values',
+        (tester) async {
+      final utcStart = DateTime.utc(2026, 7, 29, 0, 15);
+      final utcEnd = DateTime.utc(2026, 7, 29, 1, 45);
+      final expectedStart =
+          DateFormat('HH:mm', 'ko').format(utcStart.toLocal());
+      final expectedEnd = DateFormat('HH:mm', 'ko').format(utcEnd.toLocal());
+
+      await _pump(
+        tester,
+        TodayTimelineSection(
+          entries: [
+            _entry(
+              id: 'utc-event',
+              title: '해외 화상 회의',
+              kind: TaskKind.event,
+              targetDate: DateTime(2026, 7, 29),
+              start: utcStart,
+              end: utcEnd,
+            ),
+          ],
+          pendingTodoIds: const {},
+          onToggleTodo: (_) {},
+        ),
+      );
+
+      expect(find.text(expectedStart), findsOneWidget);
+      expect(find.text(expectedEnd), findsOneWidget);
+    });
+
+    testWidgets('labels todo and event rows as single semantic controls',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      String? toggledId;
+      final event = _entry(
+        id: 'semantic-event',
+        title: '팀 미팅',
+        kind: TaskKind.event,
+        targetDate: DateTime(2026, 7, 29),
+        start: DateTime(2026, 7, 29, 9),
+        end: DateTime(2026, 7, 29, 10),
+        category: _workCategory,
+      );
+      final todo = _entry(
+        id: 'semantic-timed-todo',
+        title: '기획안 정리',
+        kind: TaskKind.todo,
+        targetDate: DateTime(2026, 7, 29),
+        start: DateTime(2026, 7, 29, 16),
+        end: DateTime(2026, 7, 29, 17),
+        category: _personalCategory,
+      );
+
+      await _pump(
+        tester,
+        TodayTimelineSection(
+          entries: [event, todo],
+          pendingTodoIds: const {},
+          onToggleTodo: (id) => toggledId = id,
+        ),
+      );
+
+      const eventLabel = '팀 미팅, 09:00~10:00, 업무';
+      expect(find.semantics.byLabel(eventLabel), findsOne);
+      expect(
+        tester.getSemantics(
+          find.byKey(const Key('todayEntry-semantic-event')),
+        ),
+        matchesSemantics(
+          label: eventLabel,
+          children: const <Matcher>[],
+        ),
+      );
+
+      const todoLabel = '기획안 정리, 16:00~17:00, 개인';
+      expect(find.semantics.byLabel(todoLabel), findsOne);
+      expect(
+        tester.getSemantics(
+          find.byKey(const Key('todayEntry-semantic-timed-todo')),
+        ),
+        matchesSemantics(
+          label: todoLabel,
+          hasCheckedState: true,
+          isChecked: false,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+
+      tester.semantics.tap(find.semantics.byLabel(todoLabel));
+      expect(toggledId, 'semantic-timed-todo');
+      semantics.dispose();
+    });
   });
 
   group('TodayTodoSection', () {
@@ -395,6 +536,55 @@ void main() {
       await tester
           .tap(find.byKey(const Key('todayTodoCheckbox-completed-todo')));
       expect(toggledId, 'completed-todo');
+    });
+
+    testWidgets(
+        'exposes one labeled checked semantic control per completed todo',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      String? toggledId;
+      final completed = _entry(
+        id: 'semantic-completed-todo',
+        title: '책상 정리',
+        kind: TaskKind.todo,
+        targetDate: DateTime(2026, 7, 29),
+        category: _workCategory,
+        isCompleted: true,
+      );
+
+      await _pump(
+        tester,
+        TodayTodoSection(
+          title: '완료한 할 일',
+          entries: [completed],
+          pendingTodoIds: const {},
+          onToggleTodo: (id) => toggledId = id,
+          isCompletedPresentation: true,
+          isExpanded: true,
+          onToggleExpanded: () {},
+        ),
+      );
+
+      const label = '책상 정리, 업무, 완료';
+      expect(find.semantics.byLabel(label), findsOne);
+      expect(
+        tester.getSemantics(
+          find.byKey(const Key('todayEntry-semantic-completed-todo')),
+        ),
+        matchesSemantics(
+          label: label,
+          hasCheckedState: true,
+          isChecked: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasTapAction: true,
+          children: const <Matcher>[],
+        ),
+      );
+
+      tester.semantics.tap(find.semantics.byLabel(label));
+      expect(toggledId, 'semantic-completed-todo');
+      semantics.dispose();
     });
   });
 
