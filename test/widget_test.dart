@@ -313,6 +313,34 @@ void main() {
     expect(appBar.centerTitle, isFalse);
   });
 
+  testWidgets('calendar shell resolves its primary chrome to white',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+
+    final context = tester.element(find.byKey(const Key('todayContent')));
+    final theme = Theme.of(context);
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    final navigationBar =
+        tester.widget<NavigationBar>(find.byType(NavigationBar));
+
+    expect(
+      scaffold.backgroundColor ?? theme.scaffoldBackgroundColor,
+      Colors.white,
+    );
+    expect(
+      appBar.backgroundColor ?? theme.appBarTheme.backgroundColor,
+      Colors.white,
+    );
+    expect(
+      navigationBar.backgroundColor ?? theme.navigationBarTheme.backgroundColor,
+      Colors.white,
+    );
+  });
+
   for (final size in const [Size(390, 844), Size(1200, 900)]) {
     testWidgets('calendar shell fits ${size.width.toInt()}px', (tester) async {
       tester.view
