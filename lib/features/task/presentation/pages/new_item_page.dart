@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft.dart';
 
-enum NewItemKind {
-  event,
-  todo,
-}
+typedef NewItemTimePicker = Future<TimeOfDay?> Function(
+  BuildContext context,
+  TimeOfDay initialTime,
+);
 
 class NewItemPage extends StatefulWidget {
   const NewItemPage({
     required this.selectedDate,
     required this.onClose,
+    this.timePicker,
     super.key,
   });
 
   final DateTime selectedDate;
   final VoidCallback onClose;
+  final NewItemTimePicker? timePicker;
 
   @override
   State<NewItemPage> createState() => _NewItemPageState();
@@ -23,7 +26,7 @@ class _NewItemPageState extends State<NewItemPage> {
   static const _navy = Color(0xFF2E4175);
 
   final _titleController = TextEditingController();
-  NewItemKind _kind = NewItemKind.event;
+  NewItemScheduleDraft _draft = const NewItemScheduleDraft();
 
   @override
   void dispose() {
@@ -64,8 +67,10 @@ class _NewItemPageState extends State<NewItemPage> {
                           const _FieldLabel('종류'),
                           const SizedBox(height: 8),
                           _KindSelector(
-                            selected: _kind,
-                            onSelected: (kind) => setState(() => _kind = kind),
+                            selected: _draft.kind,
+                            onSelected: (kind) => setState(
+                              () => _draft = _draft.withKind(kind),
+                            ),
                           ),
                           const SizedBox(height: 28),
                           const _FieldLabel('제목'),
@@ -80,7 +85,7 @@ class _NewItemPageState extends State<NewItemPage> {
                               autofocus: false,
                               textInputAction: TextInputAction.done,
                               decoration: InputDecoration(
-                                hintText: _kind == NewItemKind.event
+                                hintText: _draft.kind == NewItemKind.event
                                     ? '일정 제목'
                                     : 'Todo 제목',
                                 filled: true,
@@ -101,6 +106,26 @@ class _NewItemPageState extends State<NewItemPage> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 28),
+                          const _FieldLabel('시간'),
+                          const SizedBox(height: 8),
+                          _TimeModeSelector(
+                            kind: _draft.kind,
+                            selected: _draft.activeMode,
+                            onSelected: (mode) => setState(
+                              () => _draft = _draft.withMode(mode),
+                            ),
+                          ),
+                          if (_draft.showsTimeFields) ...[
+                            const SizedBox(height: 12),
+                            _TimeRangeFields(
+                              startTime: _draft.startTime,
+                              endTime: _draft.endTime,
+                              error: _draft.timeRangeError,
+                              onSelectStart: () => _selectTime(isStart: true),
+                              onSelectEnd: () => _selectTime(isStart: false),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -112,6 +137,30 @@ class _NewItemPageState extends State<NewItemPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _selectTime({required bool isStart}) async {
+    final current = isStart ? _draft.startTime : _draft.endTime;
+    final initial = current ??
+        (isStart ? TimeOfDay.now() : _draft.startTime ?? TimeOfDay.now());
+    final selected = await (widget.timePicker ?? _showTimePicker)(
+      context,
+      initial,
+    );
+    if (!mounted || selected == null) return;
+
+    setState(() {
+      _draft = isStart
+          ? _draft.withStartTime(selected)
+          : _draft.withEndTime(selected);
+    });
+  }
+
+  Future<TimeOfDay?> _showTimePicker(
+    BuildContext context,
+    TimeOfDay initialTime,
+  ) {
+    return showTimePicker(context: context, initialTime: initialTime);
   }
 }
 
@@ -282,6 +331,215 @@ class _KindButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TimeModeSelector extends StatelessWidget {
+  const _TimeModeSelector({
+    required this.kind,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final NewItemKind kind;
+  final NewItemTimeMode selected;
+  final ValueChanged<NewItemTimeMode> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = switch (kind) {
+      NewItemKind.event => const [
+          _TimeModeOption(
+            key: Key('newItemTimedMode'),
+            label: '시간 지정',
+            mode: NewItemTimeMode.timed,
+          ),
+          _TimeModeOption(
+            key: Key('newItemAllDayMode'),
+            label: '종일',
+            mode: NewItemTimeMode.allDay,
+          ),
+        ],
+      NewItemKind.todo => const [
+          _TimeModeOption(
+            key: Key('newItemUntimedMode'),
+            label: '시간 없음',
+            mode: NewItemTimeMode.untimed,
+          ),
+          _TimeModeOption(
+            key: Key('newItemTimedMode'),
+            label: '시간 지정',
+            mode: NewItemTimeMode.timed,
+          ),
+        ],
+    };
+
+    return Row(
+      children: [
+        for (var index = 0; index < options.length; index++) ...[
+          if (index > 0) const SizedBox(width: 10),
+          Expanded(
+            child: _KindButton(
+              key: options[index].key,
+              label: options[index].label,
+              selected: selected == options[index].mode,
+              onTap: () => onSelected(options[index].mode),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+@immutable
+class _TimeModeOption {
+  const _TimeModeOption({
+    required this.key,
+    required this.label,
+    required this.mode,
+  });
+
+  final Key key;
+  final String label;
+  final NewItemTimeMode mode;
+}
+
+class _TimeRangeFields extends StatelessWidget {
+  const _TimeRangeFields({
+    required this.startTime,
+    required this.endTime,
+    required this.error,
+    required this.onSelectStart,
+    required this.onSelectEnd,
+  });
+
+  final TimeOfDay? startTime;
+  final TimeOfDay? endTime;
+  final String? error;
+  final VoidCallback onSelectStart;
+  final VoidCallback onSelectEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final startButton = _TimePickerButton(
+      key: const Key('newItemStartTimeButton'),
+      label: '시작',
+      value: startTime,
+      onTap: onSelectStart,
+    );
+    final endButton = _TimePickerButton(
+      key: const Key('newItemEndTimeButton'),
+      label: '종료',
+      value: endTime,
+      onTap: onSelectEnd,
+    );
+    final useColumn = MediaQuery.textScalerOf(context).scale(1) > 1.4;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (useColumn) ...[
+          startButton,
+          const SizedBox(height: 10),
+          endButton,
+        ] else
+          Row(
+            children: [
+              Expanded(child: startButton),
+              const SizedBox(width: 10),
+              Expanded(child: endButton),
+            ],
+          ),
+        if (error != null) ...[
+          const SizedBox(height: 8),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              error!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFFB42318),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TimePickerButton extends StatelessWidget {
+  const _TimePickerButton({
+    required this.label,
+    required this.value,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final TimeOfDay? value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayValue = value == null ? '선택' : _formatTime(value!);
+
+    return Semantics(
+      label: '$label 시간 $displayValue',
+      button: true,
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFFD0D5DD)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: const Color(0xFF667085),
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      displayValue,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF202124),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final period = time.hour < 12 ? '오전' : '오후';
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$period $hour:$minute';
   }
 }
 
