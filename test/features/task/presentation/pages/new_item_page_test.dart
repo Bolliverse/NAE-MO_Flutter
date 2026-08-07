@@ -11,6 +11,10 @@ void main() {
     expect(find.text('새 항목 추가'), findsOneWidget);
     expect(find.text('2026년 8월 3일'), findsOneWidget);
     expect(find.byKey(const Key('newItemTitleField')), findsOneWidget);
+    expect(find.byKey(const Key('newItemTimedMode')), findsOneWidget);
+    expect(find.byKey(const Key('newItemAllDayMode')), findsOneWidget);
+    expect(find.byKey(const Key('newItemStartTimeButton')), findsOneWidget);
+    expect(find.byKey(const Key('newItemEndTimeButton')), findsOneWidget);
     expect(
       tester
           .widget<TextButton>(find.byKey(const Key('newItemSaveButton')))
@@ -52,6 +56,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('리뷰 요청 보내기'), findsOneWidget);
+    expect(find.byKey(const Key('newItemUntimedMode')), findsOneWidget);
+    expect(find.byKey(const Key('newItemStartTimeButton')), findsNothing);
+    expect(find.byKey(const Key('newItemEndTimeButton')), findsNothing);
     expect(
       tester.getSemantics(find.byKey(const Key('newItemTodoKind'))),
       matchesSemantics(
@@ -79,6 +86,74 @@ void main() {
       contains('제목'),
     );
     semantics.dispose();
+  });
+
+  testWidgets('shows and clears an invalid selected time range',
+      (tester) async {
+    final times = <TimeOfDay>[
+      const TimeOfDay(hour: 10, minute: 0),
+      const TimeOfDay(hour: 9, minute: 30),
+      const TimeOfDay(hour: 10, minute: 30),
+    ];
+    await _pump(
+      tester,
+      timePicker: (_, __) async => times.removeAt(0),
+    );
+
+    await tester.tap(find.byKey(const Key('newItemStartTimeButton')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemEndTimeButton')));
+    await tester.pump();
+
+    expect(find.text('오전 10:00'), findsOneWidget);
+    expect(find.text('오전 9:30'), findsOneWidget);
+    expect(
+      find.text('종료 시간은 시작 시간보다 늦어야 합니다.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('newItemEndTimeButton')));
+    await tester.pump();
+
+    expect(find.text('오전 10:30'), findsOneWidget);
+    expect(
+      find.text('종료 시간은 시작 시간보다 늦어야 합니다.'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('restores selected times after modes hide them', (tester) async {
+    final times = <TimeOfDay>[
+      const TimeOfDay(hour: 9, minute: 30),
+      const TimeOfDay(hour: 10, minute: 30),
+    ];
+    await _pump(
+      tester,
+      timePicker: (_, __) async => times.removeAt(0),
+    );
+
+    await tester.tap(find.byKey(const Key('newItemStartTimeButton')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemEndTimeButton')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemAllDayMode')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('newItemStartTimeButton')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('newItemTimedMode')));
+    await tester.pump();
+    expect(find.text('오전 9:30'), findsOneWidget);
+    expect(find.text('오전 10:30'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('newItemTodoKind')));
+    await tester.pump();
+    expect(find.byKey(const Key('newItemStartTimeButton')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('newItemTimedMode')));
+    await tester.pump();
+    expect(find.text('오전 9:30'), findsOneWidget);
+    expect(find.text('오전 10:30'), findsOneWidget);
   });
 
   testWidgets('close button reports one close request', (tester) async {
@@ -114,20 +189,26 @@ void main() {
 
     await _pump(tester);
 
+    await tester.ensureVisible(
+      find.byKey(const Key('newItemEndTimeButton')),
+    );
+    await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('2026년 8월 3일'), findsOneWidget);
+    expect(find.byKey(const Key('newItemEndTimeButton')), findsOneWidget);
   });
 }
 
 Future<void> _pump(
   WidgetTester tester, {
   VoidCallback? onClose,
+  NewItemTimePicker? timePicker,
 }) {
   return tester.pumpWidget(
     MaterialApp(
       home: NewItemPage(
         selectedDate: DateTime(2026, 8, 3),
         onClose: onClose ?? () {},
+        timePicker: timePicker,
       ),
     ),
   );
