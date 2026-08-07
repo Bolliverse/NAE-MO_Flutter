@@ -4,11 +4,10 @@ import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/features/calendar/presentation/states/today_state.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
-import 'package:nae_mo/features/calendar/presentation/widgets/today_all_day_section.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/daily_calendar_pane.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/daily_split_scaffold.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/daily_todo_pane.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_date_header.dart';
-import 'package:nae_mo/features/calendar/presentation/widgets/today_overdue_section.dart';
-import 'package:nae_mo/features/calendar/presentation/widgets/today_timeline_section.dart';
-import 'package:nae_mo/features/calendar/presentation/widgets/today_todo_section.dart';
 
 class TodayPage extends ConsumerWidget {
   const TodayPage({super.key});
@@ -22,9 +21,7 @@ class TodayPage extends ConsumerWidget {
       key: const Key('todayDateHeader'),
       selectedDate: selectedDate,
       onPrevious: () => selectedDateNotifier.addDays(-1),
-      onToday: selectedDateNotifier.goToToday,
       onNext: () => selectedDateNotifier.addDays(1),
-      onSelectDate: selectedDateNotifier.select,
     );
 
     return today.when(
@@ -158,6 +155,27 @@ class _TodayContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final overview = state.overview;
+    final calendarTimeline = overview.timelineItems
+        .where((entry) => entry.task.isEvent)
+        .toList(growable: false);
+    final todoTimeline = overview.timelineItems
+        .where((entry) => entry.task.isTodo)
+        .toList(growable: false);
+    final completedPinned = overview.completedTodos
+        .where((entry) => !entry.task.hasTime)
+        .toList(growable: false);
+    final completedTimeline = overview.completedTodos
+        .where((entry) => entry.task.hasTime)
+        .toList(growable: false);
+    final todoPinned = [
+      ...overview.overdueTodos,
+      ...overview.untimedTodos,
+      ...completedPinned,
+    ];
+    final visibleTodoTimeline = [
+      ...todoTimeline,
+      ...completedTimeline,
+    ];
 
     Future<void> toggleTodo(String taskId) async {
       final initiatingDate = overview.date;
@@ -177,50 +195,39 @@ class _TodayContent extends ConsumerWidget {
     }
 
     return _TodayPageFrame(
-      child: ListView(
+      child: KeyedSubtree(
         key: const Key('todayContent'),
-        padding: const EdgeInsets.only(bottom: 128),
-        children: [
-          dateHeader,
-          TodayOverdueSection(
-            key: const Key('todayOverdueSection'),
-            entries: overview.overdueTodos,
-            isExpanded: state.isOverdueExpanded,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleExpanded:
-                ref.read(todayViewModelProvider.notifier).toggleOverdueSection,
-            onToggleTodo: toggleTodo,
-          ),
-          TodayAllDaySection(
-            key: const Key('todayAllDaySection'),
+        child: DailySplitScaffold(
+          key: const Key('dailySplitScaffold'),
+          header: dateHeader,
+          pinnedHeight: 220,
+          initialTimelineOffset: 8 * dailyCalendarHourExtent - 24,
+          calendarPinnedBuilder: (context, layout) => DailyCalendarPinned(
+            key: const Key('dailyCalendarPinned'),
             entries: overview.allDayEvents,
+            isCompact: layout.isCompact,
           ),
-          TodayTimelineSection(
-            key: const Key('todayTimelineSection'),
-            entries: overview.timelineItems,
+          todoPinnedBuilder: (context, layout) => DailyTodoPinned(
+            key: const Key('dailyTodoPinned'),
+            entries: todoPinned,
+            selectedDate: overview.date,
+            isCompact: layout.isCompact,
             pendingTodoIds: state.pendingTodoIds,
             onToggleTodo: toggleTodo,
           ),
-          TodayTodoSection(
-            key: const Key('todayUntimedSection'),
-            title: '시간 미정 할 일',
-            entries: overview.untimedTodos,
+          calendarTimelineBuilder: (context, layout) => DailyCalendarTimeline(
+            key: const Key('dailyCalendarTimeline'),
+            entries: calendarTimeline,
+            isCompact: layout.isCompact,
+          ),
+          todoTimelineBuilder: (context, layout) => DailyTodoTimeline(
+            key: const Key('dailyTodoTimeline'),
+            entries: visibleTodoTimeline,
+            isCompact: layout.isCompact,
             pendingTodoIds: state.pendingTodoIds,
             onToggleTodo: toggleTodo,
           ),
-          TodayTodoSection(
-            key: const Key('todayCompletedSection'),
-            title: '완료한 할 일',
-            entries: overview.completedTodos,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleTodo: toggleTodo,
-            isCompletedPresentation: true,
-            isExpanded: state.isCompletedExpanded,
-            onToggleExpanded: ref
-                .read(todayViewModelProvider.notifier)
-                .toggleCompletedSection,
-          ),
-        ],
+        ),
       ),
     );
   }

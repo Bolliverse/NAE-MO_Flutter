@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show SemanticsFlag;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,7 +54,10 @@ void main() {
     );
     await _pumpPage(tester, harness);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('todayEntry-old-content')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-old-content')),
+      findsOneWidget,
+    );
 
     harness.container.read(selectedDateProvider.notifier).select(nextDate);
     await tester.pump();
@@ -63,14 +65,12 @@ void main() {
     expect(find.byKey(const Key('todayLoadingIndicator')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
-    expect(
-      tester
-          .getSemantics(find.byKey(const Key('todayDate-2026-08-04')))
-          .hasFlag(SemanticsFlag.isSelected),
-      isTrue,
-    );
+    expect(find.text('8/4'), findsOneWidget);
     expect(find.byKey(const Key('todayContent')), findsNothing);
-    expect(find.byKey(const Key('todayEntry-old-content')), findsNothing);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-old-content')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const Key('todayNextDate')));
     await tester.pump();
@@ -78,12 +78,7 @@ void main() {
     expect(harness.container.read(selectedDateProvider), DateTime(2026, 8, 5));
     expect(find.byKey(const Key('todayLoadingIndicator')), findsOneWidget);
     expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
-    expect(
-      tester
-          .getSemantics(find.byKey(const Key('todayDate-2026-08-05')))
-          .hasFlag(SemanticsFlag.isSelected),
-      isTrue,
-    );
+    expect(find.text('8/5'), findsOneWidget);
 
     reload.complete(success(_overview(DateTime(2026, 8, 5))));
     await tester.pumpAndSettle();
@@ -101,12 +96,7 @@ void main() {
 
     expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
     expect(find.byKey(const Key('todayRetryButton')), findsOneWidget);
-    expect(
-      tester
-          .getSemantics(find.byKey(const Key('todayDate-2026-08-03')))
-          .hasFlag(SemanticsFlag.isSelected),
-      isTrue,
-    );
+    expect(find.text('8/3'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('todayNextDate')));
     await tester.pumpAndSettle();
@@ -114,12 +104,7 @@ void main() {
     expect(harness.container.read(selectedDateProvider), DateTime(2026, 8, 4));
     expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
     expect(find.byKey(const Key('todayRetryButton')), findsOneWidget);
-    expect(
-      tester
-          .getSemantics(find.byKey(const Key('todayDate-2026-08-04')))
-          .hasFlag(SemanticsFlag.isSelected),
-      isTrue,
-    );
+    expect(find.text('8/4'), findsOneWidget);
   });
 
   testWidgets('load failure shows its message and retry reloads current date',
@@ -189,7 +174,7 @@ void main() {
     expect(retry.hitTestable(), findsOneWidget);
   });
 
-  testWidgets('loaded sections keep one fixed order and exclusive entry keys',
+  testWidgets('loaded data is divided between Calendar and Todo panes',
       (tester) async {
     _setSurfaceSize(tester, const Size(1200, 1400));
     final overview = _populatedOverview(initialDate);
@@ -200,43 +185,117 @@ void main() {
     await _pumpPage(tester, harness);
     await tester.pumpAndSettle();
 
-    final listView = tester.widget<ListView>(
-      find.byKey(const Key('todayContent')),
-    );
-    final delegate = listView.childrenDelegate as SliverChildListDelegate;
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(find.byKey(const Key('dailySplitScaffold')), findsOneWidget);
+    expect(find.byKey(const Key('dailyCalendarPinned')), findsOneWidget);
+    expect(find.byKey(const Key('dailyTodoPinned')), findsOneWidget);
+    expect(find.byKey(const Key('dailyCalendarTimeline')), findsOneWidget);
+    expect(find.byKey(const Key('dailyTodoTimeline')), findsOneWidget);
+
     expect(
-      delegate.children.map((child) => child.key),
-      const [
-        Key('todayDateHeader'),
-        Key('todayOverdueSection'),
-        Key('todayAllDaySection'),
-        Key('todayTimelineSection'),
-        Key('todayUntimedSection'),
-        Key('todayCompletedSection'),
-      ],
+      find.byKey(const Key('dailyCalendarAllDay-all-day')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-calendar-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarCompactAllDay-0')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoCompactPinned-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoCompactTimed-timeline')),
+      findsOneWidget,
     );
 
-    await tester.tap(find.text('지난 할 일'));
-    await tester.tap(find.text('완료한 할 일'));
-    await tester.pump();
+    final scrollable = find.descendant(
+      of: find.byKey(const Key('dailyTimelineScroll')),
+      matching: find.byType(Scrollable),
+    );
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      616,
+    );
 
-    for (final id in const [
-      'overdue',
-      'all-day',
-      'timeline',
-      'untimed',
-      'completed',
-    ]) {
-      expect(find.byKey(Key('todayEntry-$id')), findsOneWidget);
-    }
-    for (final id in const [
-      'overdue',
-      'timeline',
-      'untimed',
-      'completed',
-    ]) {
-      expect(find.byKey(Key('todayTodoCheckbox-$id')), findsOneWidget);
-    }
+    await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('dailyCalendarAllDay-all-day')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-calendar-timeline')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarCompactAllDay-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key('dailyCalendarCompactEvent-calendar-timeline'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoTimelineEntry-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoTimelineEntry-completed-timed')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('dailyTodoEntry-untimed')), findsOneWidget);
+    expect(find.byKey(const Key('dailyTodoEntry-completed')), findsOneWidget);
+    expect(
+      find.byKey(const Key('todayTodoCheckbox-untimed')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('expanded Todo pinned overflow remains reachable on mobile',
+      (tester) async {
+    _setSurfaceSize(tester, const Size(390, 844));
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (date) async => success(
+        _overview(
+          date,
+          untimedTodos: [
+            for (var index = 0; index < 8; index++)
+              _entry(
+                id: 'overflow-$index',
+                kind: TaskKind.todo,
+                targetDate: date,
+              ),
+          ],
+        ),
+      ),
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
+    await tester.pumpAndSettle();
+
+    final lastTodo = find.byKey(const Key('todayTodoCheckbox-overflow-7'));
+    expect(lastTodo, findsOneWidget);
+    expect(lastTodo.hitTestable(), findsNothing);
+
+    await tester.drag(
+      find.byKey(const Key('dailyTodoPinned')),
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
+
+    expect(lastTodo.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -261,66 +320,7 @@ void main() {
 
     harness.container.read(selectedDateProvider.notifier).select(initialDate);
     await tester.pumpAndSettle();
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    await tester.tap(find.byKey(const Key('todayGoToToday')));
-    await tester.pumpAndSettle();
-    expect(harness.container.read(selectedDateProvider), today);
-
-    harness.container.read(selectedDateProvider.notifier).select(initialDate);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('todayDate-2026-08-05')));
-    await tester.pumpAndSettle();
-    expect(harness.container.read(selectedDateProvider), DateTime(2026, 8, 5));
-  });
-
-  testWidgets('section header taps update the real ViewModel expansion state',
-      (tester) async {
-    final harness = _PageHarness(
-      initialDate: initialDate,
-      loadResult: (date) async => success(
-        _overview(
-          date,
-          overdueTodos: [
-            _entry(
-              id: 'expand-overdue',
-              kind: TaskKind.todo,
-              targetDate: DateTime(2026, 8, 2),
-            ),
-          ],
-          completedTodos: [
-            _entry(
-              id: 'expand-completed',
-              kind: TaskKind.todo,
-              targetDate: date,
-              isCompleted: true,
-            ),
-          ],
-        ),
-      ),
-    );
-    await _pumpPage(tester, harness);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('지난 할 일'));
-    await tester.pump();
-    expect(
-      harness.container
-          .read(todayViewModelProvider)
-          .requireValue
-          .isOverdueExpanded,
-      isTrue,
-    );
-
-    await tester.tap(find.text('완료한 할 일'));
-    await tester.pump();
-    expect(
-      harness.container
-          .read(todayViewModelProvider)
-          .requireValue
-          .isCompletedExpanded,
-      isTrue,
-    );
+    expect(find.byKey(const Key('todayGoToToday')), findsNothing);
   });
 
   testWidgets('toggle failure rolls back and shows the failure message',
@@ -340,6 +340,8 @@ void main() {
     await _pumpPage(tester, harness);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('todayTodoCheckbox-rollback')));
     await tester.pump();
     expect(
@@ -388,7 +390,7 @@ void main() {
             timelineItems: [
               _entry(
                 id: 'new-date-content',
-                kind: TaskKind.event,
+                kind: TaskKind.todo,
                 targetDate: date,
                 start: DateTime(2026, 8, 4, 9),
               ),
@@ -400,6 +402,8 @@ void main() {
     await _pumpPage(tester, harness);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('todayTodoCheckbox-old-date-todo')),
     );
@@ -408,7 +412,9 @@ void main() {
     await harness.container.read(todayViewModelProvider.future);
     await tester.pump();
     expect(
-        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+      find.byKey(const Key('dailyTodoTimelineEntry-new-date-content')),
+      findsOneWidget,
+    );
 
     harness.toggleUseCase.complete(fail(failure));
     await tester.pump();
@@ -416,7 +422,9 @@ void main() {
 
     expect(find.text(failure.message), findsNothing);
     expect(
-        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+      find.byKey(const Key('dailyTodoTimelineEntry-new-date-content')),
+      findsOneWidget,
+    );
     expect(harness.container.read(selectedDateProvider), nextDate);
   });
 
@@ -554,6 +562,13 @@ TodayOverview _populatedOverview(DateTime date) {
     ],
     timelineItems: [
       _entry(
+        id: 'calendar-timeline',
+        kind: TaskKind.event,
+        targetDate: date,
+        start: DateTime(date.year, date.month, date.day, 8),
+        end: DateTime(date.year, date.month, date.day, 9),
+      ),
+      _entry(
         id: 'timeline',
         kind: TaskKind.todo,
         targetDate: date,
@@ -574,6 +589,14 @@ TodayOverview _populatedOverview(DateTime date) {
         kind: TaskKind.todo,
         targetDate: date,
         isCompleted: true,
+      ),
+      _entry(
+        id: 'completed-timed',
+        kind: TaskKind.todo,
+        targetDate: date,
+        isCompleted: true,
+        start: DateTime(date.year, date.month, date.day, 10),
+        end: DateTime(date.year, date.month, date.day, 11),
       ),
     ],
   );
