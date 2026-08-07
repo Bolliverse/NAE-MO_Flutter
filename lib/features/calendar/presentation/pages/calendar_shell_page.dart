@@ -35,6 +35,7 @@ class CalendarShellPage extends ConsumerWidget {
           ref,
           action,
           isSubmitting: authState?.isSubmitting ?? false,
+          returnLocation: location,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -82,10 +83,15 @@ class CalendarShellPage extends ConsumerWidget {
 
   void _handleGlobalAction(
       BuildContext context, WidgetRef ref, DailyGlobalAction action,
-      {required bool isSubmitting}) {
+      {required bool isSubmitting, required String returnLocation}) {
     switch (action) {
       case DailyGlobalAction.add:
-        _showMessage(context, '새 항목 추가 화면은 다음 작업에서 제공됩니다.');
+        context.go(
+          Uri(
+            path: AppRoutes.add,
+            queryParameters: {'from': returnLocation},
+          ).toString(),
+        );
       case DailyGlobalAction.routine:
         _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
       case DailyGlobalAction.category:
