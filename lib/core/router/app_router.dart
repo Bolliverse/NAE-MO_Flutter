@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
 import 'package:nae_mo/features/auth/presentation/pages/auth_loading_page.dart';
 import 'package:nae_mo/features/auth/presentation/pages/login_page.dart';
@@ -10,6 +11,7 @@ import 'package:nae_mo/features/calendar/presentation/pages/calendar_shell_page.
 import 'package:nae_mo/features/calendar/presentation/pages/month_view_page.dart';
 import 'package:nae_mo/features/calendar/presentation/pages/today_page.dart';
 import 'package:nae_mo/features/calendar/presentation/pages/week_view_page.dart';
+import 'package:nae_mo/features/task/presentation/pages/new_item_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier();
@@ -61,6 +63,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      GoRoute(
+        path: AppRoutes.add,
+        name: 'add',
+        builder: (context, state) {
+          final returnLocation = _calendarReturnLocation(
+            state.uri.queryParameters['from'],
+          );
+          final selectedDate = ProviderScope.containerOf(
+            context,
+            listen: false,
+          ).read(selectedDateProvider);
+          return NewItemPage(
+            selectedDate: selectedDate,
+            onClose: () => context.go(returnLocation),
+          );
+        },
+      ),
     ],
     errorBuilder: (context, state) => ErrorPage(error: '${state.error}'),
   );
@@ -97,6 +116,14 @@ String? _authRedirect(
   return null;
 }
 
+String _calendarReturnLocation(String? location) {
+  return switch (location) {
+    AppRoutes.week => AppRoutes.week,
+    AppRoutes.month => AppRoutes.month,
+    _ => AppRoutes.today,
+  };
+}
+
 class _RouterRefreshNotifier extends ChangeNotifier {
   void refresh() => notifyListeners();
 }
@@ -118,4 +145,5 @@ abstract class AppRoutes {
   static const String day = '/calendar/day';
   static const String week = '/calendar/week';
   static const String month = '/calendar/month';
+  static const String add = '/calendar/add';
 }
