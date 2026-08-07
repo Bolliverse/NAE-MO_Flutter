@@ -4,13 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nae_mo/core/router/app_router.dart';
 import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
 import 'package:nae_mo/features/auth/presentation/viewmodels/auth_view_model.dart';
-
-enum _CalendarMenuAction {
-  routineManagement,
-  categoryManagement,
-  settings,
-  signOut,
-}
+import 'package:nae_mo/features/calendar/presentation/widgets/expandable_menu_fab.dart';
 
 class CalendarShellPage extends ConsumerWidget {
   const CalendarShellPage({required this.child, super.key});
@@ -34,57 +28,17 @@ class CalendarShellPage extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        elevation: 0,
-        title: const Text('NAE MO'),
-        actions: [
-          PopupMenuButton<_CalendarMenuAction>(
-            key: const Key('calendarMoreMenu'),
-            enabled: !(authState?.isSubmitting ?? false),
-            tooltip: '더보기',
-            onSelected: (action) => _handleMenuAction(context, ref, action),
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                key: Key('routineManagementAction'),
-                value: _CalendarMenuAction.routineManagement,
-                child: Text('루틴 관리'),
-              ),
-              PopupMenuItem(
-                key: Key('categoryManagementAction'),
-                value: _CalendarMenuAction.categoryManagement,
-                child: Text('카테고리 관리'),
-              ),
-              PopupMenuItem(
-                key: Key('settingsAction'),
-                value: _CalendarMenuAction.settings,
-                child: Text('설정'),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem(
-                key: Key('logoutAction'),
-                value: _CalendarMenuAction.signOut,
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 12),
-                    Text('로그아웃'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 4),
-        ],
+      body: SafeArea(child: child),
+      floatingActionButton: ExpandableMenuFab(
+        onSelected: (action) => _handleGlobalAction(
+          context,
+          ref,
+          action,
+          isSubmitting: authState?.isSubmitting ?? false,
+          returnLocation: location,
+        ),
       ),
-      body: child,
-      floatingActionButton: FloatingActionButton(
-        key: const Key('calendarAddButton'),
-        tooltip: '추가',
-        onPressed: () => _showAddSheet(context),
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _activeIndex(location),
         onDestinationSelected: (index) => _navigateTo(context, index),
@@ -127,50 +81,68 @@ class CalendarShellPage extends ConsumerWidget {
     context.go(route);
   }
 
-  void _handleMenuAction(
-    BuildContext context,
-    WidgetRef ref,
-    _CalendarMenuAction action,
-  ) {
+  void _handleGlobalAction(
+      BuildContext context, WidgetRef ref, DailyGlobalAction action,
+      {required bool isSubmitting, required String returnLocation}) {
     switch (action) {
-      case _CalendarMenuAction.routineManagement:
+      case DailyGlobalAction.add:
+        context.go(
+          Uri(
+            path: AppRoutes.add,
+            queryParameters: {'from': returnLocation},
+          ).toString(),
+        );
+      case DailyGlobalAction.routine:
         _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
-      case _CalendarMenuAction.categoryManagement:
+      case DailyGlobalAction.category:
         _showMessage(context, '카테고리 관리 화면은 다음 작업에서 제공됩니다.');
-      case _CalendarMenuAction.settings:
-        _showMessage(context, '설정 화면은 다음 작업에서 제공됩니다.');
-      case _CalendarMenuAction.signOut:
-        ref.read(authViewModelProvider.notifier).signOut();
+      case DailyGlobalAction.settings:
+        _showSettingsSheet(
+          context,
+          ref,
+          isSubmitting: isSubmitting,
+        );
     }
   }
 
-  Future<void> _showAddSheet(BuildContext context) {
+  Future<void> _showSettingsSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isSubmitting,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.white,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              key: const Key('addEventAction'),
-              leading: const Icon(Icons.event_outlined),
-              title: const Text('일정 추가'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _showMessage(context, '일정 추가 화면은 다음 작업에서 제공됩니다.');
-              },
-            ),
-            ListTile(
-              key: const Key('addTodoAction'),
-              leading: const Icon(Icons.check_box_outlined),
-              title: const Text('투두 추가'),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                _showMessage(context, '투두 추가 화면은 다음 작업에서 제공됩니다.');
-              },
-            ),
-          ],
+        key: const Key('settingsSheet'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '설정',
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                key: const Key('logoutAction'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                leading: const Icon(Icons.logout_rounded),
+                title: const Text('로그아웃'),
+                onTap: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.of(sheetContext).pop();
+                        ref.read(authViewModelProvider.notifier).signOut();
+                      },
+              ),
+            ],
+          ),
         ),
       ),
     );

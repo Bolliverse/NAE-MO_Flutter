@@ -28,6 +28,7 @@ class DailySplitScaffold extends StatefulWidget {
     this.initialPane = DailyPane.calendar,
     this.onPaneChanged,
     this.pinnedHeight = 112,
+    this.initialTimelineOffset = 0,
   });
 
   final Widget header;
@@ -38,6 +39,7 @@ class DailySplitScaffold extends StatefulWidget {
   final DailyPane initialPane;
   final ValueChanged<DailyPane>? onPaneChanged;
   final double pinnedHeight;
+  final double initialTimelineOffset;
 
   @override
   State<DailySplitScaffold> createState() => _DailySplitScaffoldState();
@@ -51,6 +53,7 @@ class _DailySplitScaffoldState extends State<DailySplitScaffold>
   static const _paneGap = 8.0;
 
   late final AnimationController _snapController;
+  late final ScrollController _timelineController;
   Animation<double>? _snapAnimation;
   late DailyPane _activePane;
   late double _progress;
@@ -61,6 +64,9 @@ class _DailySplitScaffoldState extends State<DailySplitScaffold>
     super.initState();
     _activePane = widget.initialPane;
     _progress = _progressFor(widget.initialPane);
+    _timelineController = ScrollController(
+      initialScrollOffset: widget.initialTimelineOffset,
+    );
     _snapController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -80,6 +86,7 @@ class _DailySplitScaffoldState extends State<DailySplitScaffold>
   @override
   void dispose() {
     _snapController.dispose();
+    _timelineController.dispose();
     super.dispose();
   }
 
@@ -184,6 +191,7 @@ class _DailySplitScaffoldState extends State<DailySplitScaffold>
                       Expanded(
                         child: SingleChildScrollView(
                           key: const Key('dailyTimelineScroll'),
+                          controller: _timelineController,
                           child: _buildPaneRow(
                             calendarBuilder: widget.calendarTimelineBuilder,
                             todoBuilder: widget.todoTimelineBuilder,

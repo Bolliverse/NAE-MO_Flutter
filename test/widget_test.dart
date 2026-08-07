@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nae_mo/app.dart';
 import 'package:nae_mo/core/errors/failure.dart';
+import 'package:nae_mo/core/providers/selected_date_provider.dart';
 import 'package:nae_mo/core/router/app_router.dart';
 import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/auth/auth_providers.dart';
@@ -112,13 +113,14 @@ void main() {
     expect(find.byKey(const Key('googleSignInButton')), findsNothing);
   });
 
-  testWidgets('logout clears the session and returns to login', (tester) async {
+  testWidgets('logout inside Settings clears the session and returns to login',
+      (tester) async {
     final authRepository = _FakeAuthSessionRepository(
       storedProvider: AuthProviderType.google,
     );
     await _pumpApp(tester, authRepository);
 
-    await _tapLogout(tester);
+    await _openSettingsAndTapLogout(tester);
 
     expect(authRepository.storedProvider, isNull);
     expect(find.byKey(const Key('googleSignInButton')), findsOneWidget);
@@ -166,7 +168,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('failed logout stays on the calendar and shows a SnackBar',
+  testWidgets('failed Settings logout stays signed in and shows a SnackBar',
       (tester) async {
     final authRepository = _FakeAuthSessionRepository(
       storedProvider: AuthProviderType.apple,
@@ -174,7 +176,7 @@ void main() {
     );
     await _pumpApp(tester, authRepository);
 
-    await _tapLogout(tester);
+    await _openSettingsAndTapLogout(tester);
 
     expect(authRepository.storedProvider, AuthProviderType.apple);
     expect(find.byKey(const Key('todayContent')), findsOneWidget);
@@ -233,29 +235,30 @@ void main() {
     expect(find.byKey(const Key('todayContent')), findsOneWidget);
   });
 
-  testWidgets('overflow contains only management actions and logout',
+  testWidgets('global FAB replaces the top app bar and exposes four actions',
       (tester) async {
     await _pumpApp(
       tester,
       _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
     );
 
-    await tester.tap(find.byKey(const Key('calendarMoreMenu')));
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byKey(const Key('calendarMoreMenu')), findsNothing);
+    expect(find.byKey(const Key('logoutAction')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
     await tester.pumpAndSettle();
 
+    expect(find.text('새 항목 추가'), findsOneWidget);
     expect(find.text('루틴 관리'), findsOneWidget);
     expect(find.text('카테고리 관리'), findsOneWidget);
     expect(find.text('설정'), findsOneWidget);
-    expect(find.text('로그아웃'), findsOneWidget);
-    expect(find.text('일 보기'), findsNothing);
-    expect(find.text('주 보기'), findsNothing);
-    expect(find.text('월 보기'), findsNothing);
+    expect(find.text('로그아웃'), findsNothing);
   });
 
   for (final action in const {
-    'routineManagementAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
-    'categoryManagementAction': '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
-    'settingsAction': '설정 화면은 다음 작업에서 제공됩니다.',
+    'globalRoutineAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
+    'globalCategoryAction': '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
   }.entries) {
     testWidgets('${action.key} stays on the route and shows a placeholder',
         (tester) async {
@@ -264,53 +267,95 @@ void main() {
         _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
       );
 
-      await tester.tap(find.byKey(const Key('calendarMoreMenu')));
+      await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(Key(action.key)));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(_routerOf(tester).routeInformationProvider.value.uri.path,
           AppRoutes.today);
       expect(find.text(action.value), findsOneWidget);
+      expect(find.byKey(Key(action.key)), findsNothing);
     });
   }
 
-  for (final action in const {
-    'addEventAction': '일정 추가 화면은 다음 작업에서 제공됩니다.',
-    'addTodoAction': '투두 추가 화면은 다음 작업에서 제공됩니다.',
-  }.entries) {
-    testWidgets('FAB ${action.key} closes the sheet and keeps the route',
-        (tester) async {
-      await _pumpApp(
-        tester,
-        _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
-      );
+  testWidgets('new item action opens one shell and returns to the same Daily',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(App)),
+      listen: false,
+    );
+    container.read(selectedDateProvider.notifier).select(DateTime(2030, 4, 5));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('calendarAddButton')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
 
-      expect(find.text('일정 추가'), findsOneWidget);
-      expect(find.text('투두 추가'), findsOneWidget);
-      expect(find.text('루틴 관리'), findsNothing);
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.add);
+    expect(find.text('2030년 4월 5일'), findsOneWidget);
+    expect(find.byKey(const Key('newItemEventKind')), findsOneWidget);
+    expect(find.byKey(const Key('newItemTodoKind')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('calendarGlobalMenuButton')), findsNothing);
 
-      await tester.tap(find.byKey(Key(action.key)));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('newItemCloseButton')));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(BottomSheet), findsNothing);
-      expect(_routerOf(tester).routeInformationProvider.value.uri.path,
-          AppRoutes.today);
-      expect(find.text(action.value), findsOneWidget);
-    });
-  }
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(find.text('4/5'), findsOneWidget);
+  });
 
-  testWidgets('calendar title is explicitly left aligned', (tester) async {
+  testWidgets('new item shell closes back to its originating calendar route',
+      (tester) async {
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+    );
+    await tester.tap(find.byKey(const Key('calendarWeekDestination')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.add);
+
+    await tester.tap(find.byKey(const Key('newItemCloseButton')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+    expect(find.textContaining('Week View'), findsOneWidget);
+  });
+
+  testWidgets('Settings global action opens a sheet with logout inside',
+      (tester) async {
     await _pumpApp(
       tester,
       _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
     );
 
-    final appBar = tester.widget<AppBar>(find.byType(AppBar));
-    expect(appBar.centerTitle, isFalse);
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalSettingsAction')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settingsSheet')), findsOneWidget);
+    expect(find.text('설정'), findsOneWidget);
+    expect(find.byKey(const Key('logoutAction')), findsOneWidget);
+    expect(find.text('로그아웃'), findsOneWidget);
   });
 
   testWidgets('calendar shell resolves its primary chrome to white',
@@ -323,16 +368,11 @@ void main() {
     final context = tester.element(find.byKey(const Key('todayContent')));
     final theme = Theme.of(context);
     final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
-    final appBar = tester.widget<AppBar>(find.byType(AppBar));
     final navigationBar =
         tester.widget<NavigationBar>(find.byType(NavigationBar));
 
     expect(
       scaffold.backgroundColor ?? theme.scaffoldBackgroundColor,
-      Colors.white,
-    );
-    expect(
-      appBar.backgroundColor ?? theme.appBarTheme.backgroundColor,
       Colors.white,
     );
     expect(
@@ -358,8 +398,8 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.text('NAE MO'), findsOneWidget);
-      expect(find.byKey(const Key('calendarAddButton')), findsOneWidget);
+      expect(find.byType(AppBar), findsNothing);
+      expect(find.byKey(const Key('calendarGlobalMenuButton')), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
     });
   }
@@ -462,10 +502,12 @@ GoRouter _routerOf(WidgetTester tester) {
   return container.read(appRouterProvider);
 }
 
-Future<void> _tapLogout(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('calendarMoreMenu')));
+Future<void> _openSettingsAndTapLogout(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('로그아웃'));
+  await tester.tap(find.byKey(const Key('globalSettingsAction')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('logoutAction')));
   await tester.pumpAndSettle();
 }
 

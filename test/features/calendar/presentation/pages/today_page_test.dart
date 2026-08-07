@@ -54,7 +54,10 @@ void main() {
     );
     await _pumpPage(tester, harness);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('todayEntry-old-content')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-old-content')),
+      findsOneWidget,
+    );
 
     harness.container.read(selectedDateProvider.notifier).select(nextDate);
     await tester.pump();
@@ -64,7 +67,10 @@ void main() {
     expect(find.byKey(const Key('todayDateHeader')), findsOneWidget);
     expect(find.text('8/4'), findsOneWidget);
     expect(find.byKey(const Key('todayContent')), findsNothing);
-    expect(find.byKey(const Key('todayEntry-old-content')), findsNothing);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-old-content')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const Key('todayNextDate')));
     await tester.pump();
@@ -186,24 +192,67 @@ void main() {
     expect(find.byKey(const Key('dailyCalendarTimeline')), findsOneWidget);
     expect(find.byKey(const Key('dailyTodoTimeline')), findsOneWidget);
 
-    expect(find.byKey(const Key('todayEntry-all-day')), findsOneWidget);
     expect(
-      find.byKey(const Key('todayEntry-calendar-timeline')),
+      find.byKey(const Key('dailyCalendarAllDay-all-day')),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('todayEntry-timeline')), findsNothing);
-    expect(find.byKey(const Key('todayEntry-untimed')), findsNothing);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-calendar-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarCompactAllDay-0')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoCompactPinned-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoCompactTimed-timeline')),
+      findsOneWidget,
+    );
+
+    final scrollable = find.descendant(
+      of: find.byKey(const Key('dailyTimelineScroll')),
+      matching: find.byType(Scrollable),
+    );
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      616,
+    );
 
     await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('todayEntry-all-day')), findsNothing);
     expect(
-      find.byKey(const Key('todayEntry-calendar-timeline')),
+      find.byKey(const Key('dailyCalendarAllDay-all-day')),
       findsNothing,
     );
-    expect(find.byKey(const Key('todayEntry-timeline')), findsOneWidget);
-    expect(find.byKey(const Key('todayEntry-untimed')), findsOneWidget);
+    expect(
+      find.byKey(const Key('dailyCalendarEvent-calendar-timeline')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('dailyCalendarCompactAllDay-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key('dailyCalendarCompactEvent-calendar-timeline'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoTimelineEntry-timeline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('dailyTodoTimelineEntry-completed-timed')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('dailyTodoEntry-untimed')), findsOneWidget);
+    expect(find.byKey(const Key('dailyTodoEntry-completed')), findsOneWidget);
     expect(
       find.byKey(const Key('todayTodoCheckbox-untimed')),
       findsOneWidget,
@@ -236,8 +285,7 @@ void main() {
     await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
     await tester.pumpAndSettle();
 
-    final lastTodo =
-        find.byKey(const Key('todayTodoCheckbox-overflow-7'));
+    final lastTodo = find.byKey(const Key('todayTodoCheckbox-overflow-7'));
     expect(lastTodo, findsOneWidget);
     expect(lastTodo.hitTestable(), findsNothing);
 
@@ -364,7 +412,9 @@ void main() {
     await harness.container.read(todayViewModelProvider.future);
     await tester.pump();
     expect(
-        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+      find.byKey(const Key('dailyTodoTimelineEntry-new-date-content')),
+      findsOneWidget,
+    );
 
     harness.toggleUseCase.complete(fail(failure));
     await tester.pump();
@@ -372,7 +422,9 @@ void main() {
 
     expect(find.text(failure.message), findsNothing);
     expect(
-        find.byKey(const Key('todayEntry-new-date-content')), findsOneWidget);
+      find.byKey(const Key('dailyTodoTimelineEntry-new-date-content')),
+      findsOneWidget,
+    );
     expect(harness.container.read(selectedDateProvider), nextDate);
   });
 
@@ -537,6 +589,14 @@ TodayOverview _populatedOverview(DateTime date) {
         kind: TaskKind.todo,
         targetDate: date,
         isCompleted: true,
+      ),
+      _entry(
+        id: 'completed-timed',
+        kind: TaskKind.todo,
+        targetDate: date,
+        isCompleted: true,
+        start: DateTime(date.year, date.month, date.day, 10),
+        end: DateTime(date.year, date.month, date.day, 11),
       ),
     ],
   );
