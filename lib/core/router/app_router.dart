@@ -11,6 +11,7 @@ import 'package:nae_mo/features/calendar/presentation/pages/calendar_shell_page.
 import 'package:nae_mo/features/calendar/presentation/pages/month_view_page.dart';
 import 'package:nae_mo/features/calendar/presentation/pages/today_page.dart';
 import 'package:nae_mo/features/calendar/presentation/pages/week_view_page.dart';
+import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
 import 'package:nae_mo/features/task/presentation/pages/new_item_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -77,6 +78,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return NewItemPage(
             selectedDate: selectedDate,
             onClose: () => context.go(returnLocation),
+            onSaved: () {
+              ProviderScope.containerOf(
+                context,
+                listen: false,
+              ).invalidate(todayViewModelProvider);
+              context.go(returnLocation);
+            },
           );
         },
       ),
