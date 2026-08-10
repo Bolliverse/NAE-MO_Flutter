@@ -141,9 +141,10 @@ class _CategoryLoading extends StatelessWidget {
         child: _CategorySurface(
           child: Row(
             children: [
-              const SizedBox.square(
-                dimension: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              const Icon(
+                Icons.hourglass_empty_rounded,
+                size: 20,
+                color: Color(0xFF667085),
               ),
               const SizedBox(width: 12),
               Expanded(
