@@ -15,6 +15,7 @@ import 'package:nae_mo/features/auth/domain/entities/auth_session.dart';
 import 'package:nae_mo/features/auth/domain/repositories/auth_session_repository.dart';
 import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
 import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_case.dart';
+import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
 import 'package:nae_mo/features/task/data/repositories/task_repository_provider.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart' as domain;
@@ -388,7 +389,21 @@ void main() {
 
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.today);
-    expect(find.text('리뷰 요청 보내기'), findsOneWidget);
+    expect(
+      find.byKey(const Key('dailyTodoCompactPinned-0')),
+      findsOneWidget,
+    );
+    expect(
+      container
+          .read(todayViewModelProvider)
+          .valueOrNull
+          ?.overview
+          .untimedTodos
+          .single
+          .task
+          .title,
+      '리뷰 요청 보내기',
+    );
     expect(overviewUseCase.calls, 2);
     expect(taskRepository.createdParams?.targetDate, DateTime(2026, 8, 3));
   });
