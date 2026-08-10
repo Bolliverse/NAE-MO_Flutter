@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft.dart';
+import 'package:nae_mo/features/task/presentation/widgets/new_item_category_input.dart';
 
 typedef NewItemTimePicker = Future<TimeOfDay?> Function(
   BuildContext context,
@@ -11,12 +12,14 @@ class NewItemPage extends StatefulWidget {
     required this.selectedDate,
     required this.onClose,
     this.timePicker,
+    this.categoryLoader,
     super.key,
   });
 
   final DateTime selectedDate;
   final VoidCallback onClose;
   final NewItemTimePicker? timePicker;
+  final NewItemCategoryLoader? categoryLoader;
 
   @override
   State<NewItemPage> createState() => _NewItemPageState();
@@ -27,6 +30,7 @@ class _NewItemPageState extends State<NewItemPage> {
 
   final _titleController = TextEditingController();
   NewItemScheduleDraft _draft = const NewItemScheduleDraft();
+  String? _selectedCategoryId;
 
   @override
   void dispose() {
@@ -104,6 +108,16 @@ class _NewItemPageState extends State<NewItemPage> {
                                   ),
                                 ),
                               ),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          const _FieldLabel('카테고리'),
+                          const SizedBox(height: 8),
+                          NewItemCategoryInput(
+                            loader: widget.categoryLoader,
+                            selectedId: _selectedCategoryId,
+                            onSelected: (id) => setState(
+                              () => _selectedCategoryId = id,
                             ),
                           ),
                           const SizedBox(height: 28),
