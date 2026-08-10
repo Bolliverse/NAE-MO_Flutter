@@ -369,7 +369,13 @@ void main() {
         children: const <Matcher>[],
       ),
     );
-    expect(find.text('리뷰 요청 보내기'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('newItemTitleField')))
+          .controller
+          ?.text,
+      '  리뷰 요청 보내기  ',
+    );
     expect(_saveButton(tester).onPressed, isNotNull);
 
     await tester.tap(find.byKey(const Key('newItemSaveButton')));
