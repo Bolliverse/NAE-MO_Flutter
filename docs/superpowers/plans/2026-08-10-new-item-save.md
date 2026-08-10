@@ -18,7 +18,7 @@
 - `lib/features/task/presentation/pages/new_item_page.dart`: form validity, parameter conversion, use-case submission, and inline status UI.
 - `test/widget_test.dart`: router-level save, return, and Today refresh regression.
 - `lib/core/router/app_router.dart`: post-save Today invalidation and origin restoration.
-- `docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.png`: reviewed 390x844 UI evidence.
+- `docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.jpg`: reviewed 390x844 UI evidence.
 
 This is exactly seven changed files, including the already committed design and this plan.
 
@@ -428,7 +428,7 @@ git commit -m "feat: refresh Today after item save"
 ### Task 5: Verify and capture mobile evidence
 
 **Files:**
-- Create: `docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.png`
+- Create: `docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.jpg`
 
 - [ ] **Step 1: Run repository verification**
 
@@ -447,12 +447,12 @@ Use a temporary visual entrypoint outside the seven committed files to open `New
 
 - [ ] **Step 3: Save and inspect the screenshot**
 
-Capture exactly `docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.png`. Inspect it for white background, readable Korean text, category-only color, enabled save affordance, and no overflow.
+Capture exactly `docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.jpg`. Inspect it for white background, readable Korean text, category-only color, enabled save affordance, and no overflow.
 
 - [ ] **Step 4: Commit the single evidence file**
 
 ```powershell
-git add -- docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.png
+git add -- docs/design/evidence/pr-new-item-save/new-item-save-ready-mobile.jpg
 git diff --cached --check
 git commit -m "docs: add new item save evidence"
 ```
