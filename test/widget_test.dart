@@ -340,6 +340,59 @@ void main() {
     expect(find.textContaining('Week View'), findsOneWidget);
   });
 
+  testWidgets('saving a new item returns to refreshed Today', (tester) async {
+    final restoreCompleter = Completer<Result<AuthSession>>();
+    final authRepository = _FakeAuthSessionRepository(
+      storedProvider: AuthProviderType.google,
+      restoreCompleter: restoreCompleter,
+    );
+    final taskRepository = _SavingTaskRepository();
+    final overviewUseCase = _RecordingTodayOverviewUseCase(taskRepository);
+    await _pumpApp(
+      tester,
+      authRepository,
+      settle: false,
+      taskRepository: taskRepository,
+      todayOverviewUseCase: overviewUseCase,
+    );
+    await tester.pump();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(App)),
+      listen: false,
+    );
+    container.read(selectedDateProvider.notifier).select(DateTime(2026, 8, 3));
+    restoreCompleter.complete(
+      success(
+        const AuthenticatedSession(
+          uid: 'google-user',
+          provider: AuthProviderType.google,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(overviewUseCase.calls, 1);
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('newItemTodoKind')));
+    await tester.enterText(
+      find.byKey(const Key('newItemTitleField')),
+      '리뷰 요청 보내기',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.text('리뷰 요청 보내기'), findsOneWidget);
+    expect(overviewUseCase.calls, 2);
+    expect(taskRepository.createdParams?.targetDate, DateTime(2026, 8, 3));
+  });
+
   testWidgets('Settings global action opens a sheet with logout inside',
       (tester) async {
     await _pumpApp(
@@ -477,14 +530,19 @@ Future<void> _pumpApp(
   WidgetTester tester,
   _FakeAuthSessionRepository authRepository, {
   bool settle = true,
+  TaskRepository? taskRepository,
+  GetTodayOverviewUseCase? todayOverviewUseCase,
 }) async {
+  final resolvedTaskRepository = taskRepository ?? _EmptyTaskRepository();
+  final resolvedOverviewUseCase =
+      todayOverviewUseCase ?? _EmptyTodayOverviewUseCase();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authSessionRepositoryProvider.overrideWithValue(authRepository),
-        taskRepositoryProvider.overrideWithValue(_EmptyTaskRepository()),
+        taskRepositoryProvider.overrideWithValue(resolvedTaskRepository),
         getTodayOverviewUseCaseProvider.overrideWithValue(
-          _EmptyTodayOverviewUseCase(),
+          resolvedOverviewUseCase,
         ),
       ],
       child: const App(),
@@ -618,6 +676,31 @@ class _EmptyTaskRepository implements TaskRepository {
       throw UnimplementedError();
 }
 
+class _SavingTaskRepository extends _EmptyTaskRepository {
+  CreateTaskParams? createdParams;
+  domain.Task? createdTask;
+
+  @override
+  Future<Result<domain.Task>> createTask(CreateTaskParams params) async {
+    createdParams = params;
+    createdTask = domain.Task(
+      id: 'saved-task',
+      title: params.title,
+      kind: params.kind,
+      targetDate: params.targetDate,
+      categoryId: params.categoryId,
+      isCompleted: false,
+      hasTime: params.hasTime,
+      startDateTime: params.startDateTime,
+      endDateTime: params.endDateTime,
+      isAllDay: params.isAllDay,
+      isRecurring: false,
+      createdAt: DateTime(2026, 8, 3, 12),
+    );
+    return success(createdTask!);
+  }
+}
+
 class _EmptyTodayOverviewUseCase extends GetTodayOverviewUseCase {
   _EmptyTodayOverviewUseCase()
       : super(_EmptyTaskRepository(), _UnusedCategoryRepository());
@@ -632,6 +715,32 @@ class _EmptyTodayOverviewUseCase extends GetTodayOverviewUseCase {
         allDayEvents: const [],
         timelineItems: const [],
         untimedTodos: const [],
+        completedTodos: const [],
+      ),
+    );
+  }
+}
+
+class _RecordingTodayOverviewUseCase extends GetTodayOverviewUseCase {
+  _RecordingTodayOverviewUseCase(this.repository)
+      : super(repository, _UnusedCategoryRepository());
+
+  final _SavingTaskRepository repository;
+  int calls = 0;
+
+  @override
+  Future<Result<TodayOverview>> call(DateTime selectedDate) async {
+    calls++;
+    final task = repository.createdTask;
+    final local = selectedDate.toLocal();
+    return success(
+      TodayOverview(
+        date: DateTime(local.year, local.month, local.day),
+        overdueTodos: const [],
+        allDayEvents: const [],
+        timelineItems: const [],
+        untimedTodos:
+            task == null ? const [] : [TodayEntry(task: task, category: null)],
         completedTodos: const [],
       ),
     );
