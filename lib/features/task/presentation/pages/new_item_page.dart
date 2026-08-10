@@ -327,6 +327,8 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const navy = Color(0xFF2E4175);
+
     return SizedBox(
       height: 64,
       child: Row(
@@ -352,6 +354,10 @@ class _Header extends StatelessWidget {
           TextButton(
             key: const Key('newItemSaveButton'),
             onPressed: canSave ? onSave : null,
+            style: TextButton.styleFrom(
+              foregroundColor: navy,
+              disabledForegroundColor: isSaving ? navy : null,
+            ),
             child: isSaving
                 ? const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -359,7 +365,10 @@ class _Header extends StatelessWidget {
                       SizedBox.square(
                         key: Key('newItemSaveProgress'),
                         dimension: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: navy,
+                          strokeWidth: 2,
+                        ),
                       ),
                       SizedBox(width: 8),
                       Text('저장 중'),
