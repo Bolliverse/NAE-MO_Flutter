@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nae_mo/core/errors/failure.dart';
+import 'package:nae_mo/core/utils/result.dart';
+import 'package:nae_mo/features/task/domain/entities/task.dart';
+import 'package:nae_mo/features/task/domain/usecases/create_task_use_case.dart';
+import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.dart';
 import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft.dart';
 import 'package:nae_mo/features/task/presentation/widgets/new_item_category_input.dart';
 
@@ -7,33 +13,90 @@ typedef NewItemTimePicker = Future<TimeOfDay?> Function(
   TimeOfDay initialTime,
 );
 
-class NewItemPage extends StatefulWidget {
+typedef NewItemSaver = Future<Result<Task>> Function(CreateTaskParams params);
+
+CreateTaskParams buildNewItemParams({
+  required String title,
+  required DateTime selectedDate,
+  required NewItemScheduleDraft draft,
+  required String? categoryId,
+}) {
+  final local = selectedDate.toLocal();
+  final date = DateTime(local.year, local.month, local.day);
+  final hasTime = draft.activeMode == NewItemTimeMode.timed;
+
+  DateTime? at(TimeOfDay? value) {
+    return value == null
+        ? null
+        : DateTime(
+            date.year,
+            date.month,
+            date.day,
+            value.hour,
+            value.minute,
+          );
+  }
+
+  return CreateTaskParams(
+    title: title.trim(),
+    kind: draft.kind == NewItemKind.event ? TaskKind.event : TaskKind.todo,
+    targetDate: date,
+    categoryId: categoryId,
+    hasTime: hasTime,
+    startDateTime: hasTime ? at(draft.startTime) : null,
+    endDateTime: hasTime ? at(draft.endTime) : null,
+    isAllDay: draft.activeMode == NewItemTimeMode.allDay,
+  );
+}
+
+class NewItemPage extends ConsumerStatefulWidget {
   const NewItemPage({
     required this.selectedDate,
     required this.onClose,
+    required this.onSaved,
     this.timePicker,
     this.categoryLoader,
+    this.saver,
     super.key,
   });
 
   final DateTime selectedDate;
   final VoidCallback onClose;
+  final VoidCallback onSaved;
   final NewItemTimePicker? timePicker;
   final NewItemCategoryLoader? categoryLoader;
+  final NewItemSaver? saver;
 
   @override
-  State<NewItemPage> createState() => _NewItemPageState();
+  ConsumerState<NewItemPage> createState() => _NewItemPageState();
 }
 
-class _NewItemPageState extends State<NewItemPage> {
+class _NewItemPageState extends ConsumerState<NewItemPage> {
   static const _navy = Color(0xFF2E4175);
 
   final _titleController = TextEditingController();
   NewItemScheduleDraft _draft = const NewItemScheduleDraft();
   String? _selectedCategoryId;
+  bool _isSaving = false;
+  bool _saveFailed = false;
+
+  bool get _canSave {
+    if (_isSaving || _titleController.text.trim().isEmpty) return false;
+    if (!_draft.showsTimeFields) return true;
+    return _draft.startTime != null &&
+        _draft.endTime != null &&
+        _draft.timeRangeError == null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController.addListener(_onTitleChanged);
+  }
 
   @override
   void dispose() {
+    _titleController.removeListener(_onTitleChanged);
     _titleController.dispose();
     super.dispose();
   }
@@ -45,7 +108,7 @@ class _NewItemPageState extends State<NewItemPage> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) widget.onClose();
+        if (!didPop && !_isSaving) widget.onClose();
       },
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -56,91 +119,115 @@ class _NewItemPageState extends State<NewItemPage> {
               constraints: const BoxConstraints(maxWidth: 720),
               child: Column(
                 children: [
-                  _Header(onClose: widget.onClose),
+                  _Header(
+                    onClose: _isSaving ? null : widget.onClose,
+                    canSave: _canSave,
+                    isSaving: _isSaving,
+                    onSave: _save,
+                  ),
                   const Divider(height: 1, color: Color(0xFFE4E7EC)),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const _FieldLabel('날짜'),
-                          const SizedBox(height: 8),
-                          _FixedDate(date: date),
-                          const SizedBox(height: 28),
-                          const _FieldLabel('종류'),
-                          const SizedBox(height: 8),
-                          _KindSelector(
-                            selected: _draft.kind,
-                            onSelected: (kind) => setState(
-                              () => _draft = _draft.withKind(kind),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          const _FieldLabel('제목'),
-                          const SizedBox(height: 8),
-                          Semantics(
-                            key: const Key('newItemTitleSemantics'),
-                            label: '제목',
-                            textField: true,
-                            child: TextField(
-                              key: const Key('newItemTitleField'),
-                              controller: _titleController,
-                              autofocus: false,
-                              textInputAction: TextInputAction.done,
-                              decoration: InputDecoration(
-                                hintText: _draft.kind == NewItemKind.event
-                                    ? '일정 제목'
-                                    : 'Todo 제목',
-                                filled: true,
-                                fillColor: Colors.white,
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFD0D5DD),
+                  if (_saveFailed)
+                    Semantics(
+                      key: const Key('newItemSaveError'),
+                      liveRegion: true,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        child: Text(
+                          '항목을 저장하지 못했습니다. 다시 시도해 주세요.',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFFB42318),
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: _navy,
-                                    width: 1.5,
+                        ),
+                      ),
+                    ),
+                  Expanded(
+                    child: AbsorbPointer(
+                      absorbing: _isSaving,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const _FieldLabel('날짜'),
+                            const SizedBox(height: 8),
+                            _FixedDate(date: date),
+                            const SizedBox(height: 28),
+                            const _FieldLabel('종류'),
+                            const SizedBox(height: 8),
+                            _KindSelector(
+                              selected: _draft.kind,
+                              onSelected: (kind) => _updateForm(
+                                () => _draft = _draft.withKind(kind),
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            const _FieldLabel('제목'),
+                            const SizedBox(height: 8),
+                            Semantics(
+                              key: const Key('newItemTitleSemantics'),
+                              label: '제목',
+                              textField: true,
+                              child: TextField(
+                                key: const Key('newItemTitleField'),
+                                controller: _titleController,
+                                autofocus: false,
+                                textInputAction: TextInputAction.done,
+                                decoration: InputDecoration(
+                                  hintText: _draft.kind == NewItemKind.event
+                                      ? '일정 제목'
+                                      : 'Todo 제목',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFD0D5DD),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: _navy,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 28),
-                          const _FieldLabel('카테고리'),
-                          const SizedBox(height: 8),
-                          NewItemCategoryInput(
-                            loader: widget.categoryLoader,
-                            selectedId: _selectedCategoryId,
-                            onSelected: (id) => setState(
-                              () => _selectedCategoryId = id,
+                            const SizedBox(height: 28),
+                            const _FieldLabel('카테고리'),
+                            const SizedBox(height: 8),
+                            NewItemCategoryInput(
+                              loader: widget.categoryLoader,
+                              selectedId: _selectedCategoryId,
+                              onSelected: (id) => _updateForm(
+                                () => _selectedCategoryId = id,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 28),
-                          const _FieldLabel('시간'),
-                          const SizedBox(height: 8),
-                          _TimeModeSelector(
-                            kind: _draft.kind,
-                            selected: _draft.activeMode,
-                            onSelected: (mode) => setState(
-                              () => _draft = _draft.withMode(mode),
+                            const SizedBox(height: 28),
+                            const _FieldLabel('시간'),
+                            const SizedBox(height: 8),
+                            _TimeModeSelector(
+                              kind: _draft.kind,
+                              selected: _draft.activeMode,
+                              onSelected: (mode) => _updateForm(
+                                () => _draft = _draft.withMode(mode),
+                              ),
                             ),
-                          ),
-                          if (_draft.showsTimeFields) ...[
-                            const SizedBox(height: 12),
-                            _TimeRangeFields(
-                              startTime: _draft.startTime,
-                              endTime: _draft.endTime,
-                              error: _draft.timeRangeError,
-                              onSelectStart: () => _selectTime(isStart: true),
-                              onSelectEnd: () => _selectTime(isStart: false),
-                            ),
+                            if (_draft.showsTimeFields) ...[
+                              const SizedBox(height: 12),
+                              _TimeRangeFields(
+                                startTime: _draft.startTime,
+                                endTime: _draft.endTime,
+                                error: _draft.timeRangeError,
+                                onSelectStart: () => _selectTime(isStart: true),
+                                onSelectEnd: () => _selectTime(isStart: false),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -167,6 +254,53 @@ class _NewItemPageState extends State<NewItemPage> {
       _draft = isStart
           ? _draft.withStartTime(selected)
           : _draft.withEndTime(selected);
+      _saveFailed = false;
+    });
+  }
+
+  void _onTitleChanged() {
+    if (!mounted) return;
+    setState(() => _saveFailed = false);
+  }
+
+  void _updateForm(VoidCallback update) {
+    setState(() {
+      update();
+      _saveFailed = false;
+    });
+  }
+
+  Future<void> _save() async {
+    if (!_canSave) return;
+    setState(() {
+      _isSaving = true;
+      _saveFailed = false;
+    });
+
+    final params = buildNewItemParams(
+      title: _titleController.text,
+      selectedDate: widget.selectedDate,
+      draft: _draft,
+      categoryId: _selectedCategoryId,
+    );
+    final save = widget.saver ?? ref.read(createTaskUseCaseProvider).call;
+
+    Result<Task> result;
+    try {
+      result = await save(params);
+    } catch (_) {
+      result = fail(const CacheFailure('new item save failed'));
+    }
+    if (!mounted) return;
+
+    if (result.isSuccess) {
+      widget.onSaved();
+      return;
+    }
+
+    setState(() {
+      _isSaving = false;
+      _saveFailed = true;
     });
   }
 
@@ -179,9 +313,17 @@ class _NewItemPageState extends State<NewItemPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
+  const _Header({
+    required this.onClose,
+    required this.canSave,
+    required this.isSaving,
+    required this.onSave,
+  });
 
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
+  final bool canSave;
+  final bool isSaving;
+  final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
@@ -207,10 +349,23 @@ class _Header extends StatelessWidget {
                   ),
             ),
           ),
-          const TextButton(
-            key: Key('newItemSaveButton'),
-            onPressed: null,
-            child: Text('저장'),
+          TextButton(
+            key: const Key('newItemSaveButton'),
+            onPressed: canSave ? onSave : null,
+            child: isSaving
+                ? const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox.square(
+                        key: Key('newItemSaveProgress'),
+                        dimension: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text('저장 중'),
+                    ],
+                  )
+                : const Text('저장'),
           ),
           const SizedBox(width: 8),
         ],
