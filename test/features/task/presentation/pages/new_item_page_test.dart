@@ -134,7 +134,13 @@ void main() {
 
     expect(find.byKey(const Key('newItemCategory-none')), findsOneWidget);
     expect(find.byKey(const Key('newItemCategory-work')), findsNothing);
-    expect(find.text('카테고리 없음'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('newItemCategory-none')),
+        matching: find.text('카테고리 없음'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows category loading before the loader completes',
@@ -235,10 +241,14 @@ void main() {
       timePicker: (_, __) async => times.removeAt(0),
     );
 
-    await tester.tap(find.byKey(const Key('newItemStartTimeButton')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('newItemEndTimeButton')));
-    await tester.pump();
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('newItemStartTimeButton')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('newItemEndTimeButton')),
+    );
 
     expect(find.text('오전 10:00'), findsOneWidget);
     expect(find.text('오전 9:30'), findsOneWidget);
@@ -247,8 +257,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const Key('newItemEndTimeButton')));
-    await tester.pump();
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('newItemEndTimeButton')),
+    );
 
     expect(find.text('오전 10:30'), findsOneWidget);
     expect(
@@ -267,26 +279,26 @@ void main() {
       timePicker: (_, __) async => times.removeAt(0),
     );
 
-    await tester.tap(find.byKey(const Key('newItemStartTimeButton')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('newItemEndTimeButton')));
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('newItemAllDayMode')));
-    await tester.pump();
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('newItemStartTimeButton')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('newItemEndTimeButton')),
+    );
+    await _tapVisible(tester, find.byKey(const Key('newItemAllDayMode')));
 
     expect(find.byKey(const Key('newItemStartTimeButton')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('newItemTimedMode')));
-    await tester.pump();
+    await _tapVisible(tester, find.byKey(const Key('newItemTimedMode')));
     expect(find.text('오전 9:30'), findsOneWidget);
     expect(find.text('오전 10:30'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('newItemTodoKind')));
-    await tester.pump();
+    await _tapVisible(tester, find.byKey(const Key('newItemTodoKind')));
     expect(find.byKey(const Key('newItemStartTimeButton')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('newItemTimedMode')));
-    await tester.pump();
+    await _tapVisible(tester, find.byKey(const Key('newItemTimedMode')));
     expect(find.text('오전 9:30'), findsOneWidget);
     expect(find.text('오전 10:30'), findsOneWidget);
   });
@@ -352,6 +364,13 @@ Future<void> _pump(
       ),
     ),
   );
+}
+
+Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pump();
 }
 
 const _workCategory = Category(
