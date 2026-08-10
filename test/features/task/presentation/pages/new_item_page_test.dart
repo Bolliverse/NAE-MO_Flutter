@@ -388,6 +388,45 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('blocks close and system back while a save is pending',
+      (tester) async {
+    final completer = Completer<result.Result<Task>>();
+    var closeCalls = 0;
+    await _pump(
+      tester,
+      onClose: () => closeCalls++,
+      saver: (_) => completer.future,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('newItemTitleField')),
+      '리뷰 요청 보내기',
+    );
+    await tester.tap(find.byKey(const Key('newItemTodoKind')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const Key('newItemCloseButton')))
+          .onPressed,
+      isNull,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(closeCalls, 0);
+
+    completer.complete(result.fail(const CacheFailure('save failed')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const Key('newItemCloseButton')))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('keeps a stable accessibility label after title entry',
       (tester) async {
     final semantics = tester.ensureSemantics();
