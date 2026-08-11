@@ -6,7 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/utils/result.dart' as result;
 import 'package:nae_mo/features/category/domain/entities/category.dart';
+import 'package:nae_mo/features/task/domain/entities/task.dart';
+import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.dart';
 import 'package:nae_mo/features/task/presentation/pages/new_item_page.dart';
+import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft.dart';
 import 'package:nae_mo/features/task/presentation/widgets/new_item_category_input.dart';
 
 void main() {
@@ -21,6 +24,86 @@ void main() {
     expect(state.categoryFor('a')?.name, 'A');
     expect(state.categoryFor('missing'), isNull);
     expect(state.categoryFor(null), isNull);
+  });
+
+  group('buildNewItemParams', () {
+    final cases = <({
+      String name,
+      NewItemScheduleDraft draft,
+      bool hasTime,
+      bool isAllDay,
+      TaskKind kind,
+      DateTime? start,
+      DateTime? end,
+    })>[
+      (
+        name: 'timed event',
+        draft: const NewItemScheduleDraft(
+          startTime: TimeOfDay(hour: 9, minute: 30),
+          endTime: TimeOfDay(hour: 10, minute: 30),
+        ),
+        hasTime: true,
+        isAllDay: false,
+        kind: TaskKind.event,
+        start: DateTime(2026, 8, 3, 9, 30),
+        end: DateTime(2026, 8, 3, 10, 30),
+      ),
+      (
+        name: 'all-day event',
+        draft: const NewItemScheduleDraft(
+          eventMode: NewItemTimeMode.allDay,
+        ),
+        hasTime: false,
+        isAllDay: true,
+        kind: TaskKind.event,
+        start: null,
+        end: null,
+      ),
+      (
+        name: 'timed Todo',
+        draft: const NewItemScheduleDraft(
+          kind: NewItemKind.todo,
+          todoMode: NewItemTimeMode.timed,
+          startTime: TimeOfDay(hour: 13, minute: 0),
+          endTime: TimeOfDay(hour: 14, minute: 0),
+        ),
+        hasTime: true,
+        isAllDay: false,
+        kind: TaskKind.todo,
+        start: DateTime(2026, 8, 3, 13),
+        end: DateTime(2026, 8, 3, 14),
+      ),
+      (
+        name: 'untimed Todo',
+        draft: const NewItemScheduleDraft(kind: NewItemKind.todo),
+        hasTime: false,
+        isAllDay: false,
+        kind: TaskKind.todo,
+        start: null,
+        end: null,
+      ),
+    ];
+
+    for (final testCase in cases) {
+      test('maps ${testCase.name}', () {
+        final params = buildNewItemParams(
+          title: '  리뷰 요청 보내기  ',
+          selectedDate: DateTime(2026, 8, 3, 17, 45),
+          draft: testCase.draft,
+          categoryId: testCase.name == 'untimed Todo' ? null : 'work',
+        );
+
+        expect(params.title, '리뷰 요청 보내기');
+        expect(params.targetDate, DateTime(2026, 8, 3));
+        expect(params.kind, testCase.kind);
+        expect(params.categoryId,
+            testCase.name == 'untimed Todo' ? isNull : 'work');
+        expect(params.hasTime, testCase.hasTime);
+        expect(params.isAllDay, testCase.isAllDay);
+        expect(params.startDateTime, testCase.start);
+        expect(params.endDateTime, testCase.end);
+      });
+    }
   });
 
   testWidgets('starts as one event form with a fixed Daily date',
@@ -212,6 +295,138 @@ void main() {
     );
   });
 
+  testWidgets('enables save only when the active form is complete',
+      (tester) async {
+    await _pump(tester);
+
+    await tester.enterText(
+      find.byKey(const Key('newItemTitleField')),
+      '일정 준비',
+    );
+    await tester.pump();
+    expect(_saveButton(tester).onPressed, isNull);
+
+    await _tapVisible(tester, find.byKey(const Key('newItemAllDayMode')));
+    expect(_saveButton(tester).onPressed, isNotNull);
+
+    await _tapVisible(tester, find.byKey(const Key('newItemTimedMode')));
+    expect(_saveButton(tester).onPressed, isNull);
+
+    await _tapVisible(tester, find.byKey(const Key('newItemTodoKind')));
+    expect(_saveButton(tester).onPressed, isNotNull);
+  });
+
+  testWidgets('blocks duplicate saves and retries with the same input',
+      (tester) async {
+    final completers = <Completer<result.Result<Task>>>[];
+    final capturedParams = <CreateTaskParams>[];
+    var savedCalls = 0;
+    final semantics = tester.ensureSemantics();
+    await _pump(
+      tester,
+      saver: (params) {
+        capturedParams.add(params);
+        final completer = Completer<result.Result<Task>>();
+        completers.add(completer);
+        return completer.future;
+      },
+      onSaved: () => savedCalls++,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('newItemTitleField')),
+      '  리뷰 요청 보내기  ',
+    );
+    await tester.tap(find.byKey(const Key('newItemTodoKind')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+
+    expect(capturedParams, hasLength(1));
+    expect(capturedParams.single.title, '리뷰 요청 보내기');
+    expect(find.text('저장 중'), findsOneWidget);
+    expect(find.byKey(const Key('newItemSaveProgress')), findsOneWidget);
+    expect(_saveButton(tester).onPressed, isNull);
+
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+    expect(capturedParams, hasLength(1));
+
+    completers.single.complete(
+      result.fail(const CacheFailure('save failed')),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('항목을 저장하지 못했습니다. 다시 시도해 주세요.'),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSemantics(find.byKey(const Key('newItemSaveError'))),
+      matchesSemantics(
+        label: '항목을 저장하지 못했습니다. 다시 시도해 주세요.',
+        isLiveRegion: true,
+        children: const <Matcher>[],
+      ),
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('newItemTitleField')))
+          .controller
+          ?.text,
+      '  리뷰 요청 보내기  ',
+    );
+    expect(_saveButton(tester).onPressed, isNotNull);
+
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+    expect(capturedParams, hasLength(2));
+
+    completers.last.complete(result.success(_savedTodo));
+    await tester.pump();
+    expect(savedCalls, 1);
+    semantics.dispose();
+  });
+
+  testWidgets('blocks close and system back while a save is pending',
+      (tester) async {
+    final completer = Completer<result.Result<Task>>();
+    var closeCalls = 0;
+    await _pump(
+      tester,
+      onClose: () => closeCalls++,
+      saver: (_) => completer.future,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('newItemTitleField')),
+      '리뷰 요청 보내기',
+    );
+    await tester.tap(find.byKey(const Key('newItemTodoKind')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const Key('newItemCloseButton')))
+          .onPressed,
+      isNull,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(closeCalls, 0);
+
+    completer.complete(result.fail(const CacheFailure('save failed')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const Key('newItemCloseButton')))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('keeps a stable accessibility label after title entry',
       (tester) async {
     final semantics = tester.ensureSemantics();
@@ -348,8 +563,10 @@ void main() {
 Future<void> _pump(
   WidgetTester tester, {
   VoidCallback? onClose,
+  VoidCallback? onSaved,
   NewItemTimePicker? timePicker,
   NewItemCategoryLoader? categoryLoader,
+  NewItemSaver? saver,
 }) {
   return tester.pumpWidget(
     ProviderScope(
@@ -357,12 +574,20 @@ Future<void> _pump(
         home: NewItemPage(
           selectedDate: DateTime(2026, 8, 3),
           onClose: onClose ?? () {},
+          onSaved: onSaved ?? () {},
           timePicker: timePicker,
           categoryLoader:
               categoryLoader ?? () async => result.success(const []),
+          saver: saver,
         ),
       ),
     ),
+  );
+}
+
+TextButton _saveButton(WidgetTester tester) {
+  return tester.widget<TextButton>(
+    find.byKey(const Key('newItemSaveButton')),
   );
 }
 
@@ -392,4 +617,16 @@ const _healthCategory = Category(
   name: '건강',
   color: 0xFFFFD64F,
   sortOrder: 2,
+);
+
+final _savedTodo = Task(
+  id: 'saved-task',
+  title: '리뷰 요청 보내기',
+  kind: TaskKind.todo,
+  targetDate: DateTime(2026, 8, 3),
+  isCompleted: false,
+  hasTime: false,
+  isAllDay: false,
+  isRecurring: false,
+  createdAt: DateTime(2026, 8, 3, 12),
 );
