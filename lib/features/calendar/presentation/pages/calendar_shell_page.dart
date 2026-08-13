@@ -95,7 +95,12 @@ class CalendarShellPage extends ConsumerWidget {
       case DailyGlobalAction.routine:
         _showMessage(context, '루틴 관리 화면은 다음 작업에서 제공됩니다.');
       case DailyGlobalAction.category:
-        _showMessage(context, '카테고리 관리 화면은 다음 작업에서 제공됩니다.');
+        context.go(
+          Uri(
+            path: AppRoutes.categories,
+            queryParameters: {'from': returnLocation},
+          ).toString(),
+        );
       case DailyGlobalAction.settings:
         _showSettingsSheet(
           context,

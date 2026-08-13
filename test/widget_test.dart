@@ -16,6 +16,8 @@ import 'package:nae_mo/features/auth/domain/repositories/auth_session_repository
 import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
 import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_case.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
+import 'package:nae_mo/features/category/data/repositories/category_repository_provider.dart';
+import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
 import 'package:nae_mo/features/task/data/repositories/task_repository_provider.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart' as domain;
@@ -259,7 +261,6 @@ void main() {
 
   for (final action in const {
     'globalRoutineAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
-    'globalCategoryAction': '카테고리 관리 화면은 다음 작업에서 제공됩니다.',
   }.entries) {
     testWidgets('${action.key} stays on the route and shows a placeholder',
         (tester) async {
@@ -279,6 +280,59 @@ void main() {
       expect(find.byKey(Key(action.key)), findsNothing);
     });
   }
+
+  testWidgets('category action creates a category and returns to its Daily',
+      (tester) async {
+    final categoryRepository = _MemoryCategoryRepository(
+      categories: const [
+        Category(
+          id: 'research',
+          name: '연구',
+          color: 0xFF67C1DE,
+          sortOrder: 0,
+        ),
+      ],
+    );
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+      categoryRepository: categoryRepository,
+    );
+    await tester.tap(find.byKey(const Key('calendarWeekDestination')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalCategoryAction')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.categories);
+    expect(find.text('카테고리 관리'), findsOneWidget);
+    expect(find.byKey(const Key('categoryRow-research')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('calendarGlobalMenuButton')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('categoryAddButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('categoryNameField')),
+      '사이드 프로젝트',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('categoryCreateButton')));
+    await tester.pumpAndSettle();
+
+    expect(categoryRepository.createCalls, 1);
+    expect(find.byKey(const Key('categoryRow-created-1')), findsOneWidget);
+    expect(find.text('사이드 프로젝트'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('categoryCloseButton')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+    expect(find.textContaining('Week View'), findsOneWidget);
+  });
 
   testWidgets('new item action opens one shell and returns to the same Daily',
       (tester) async {
@@ -547,6 +601,7 @@ Future<void> _pumpApp(
   bool settle = true,
   TaskRepository? taskRepository,
   GetTodayOverviewUseCase? todayOverviewUseCase,
+  CategoryRepository? categoryRepository,
 }) async {
   final resolvedTaskRepository = taskRepository ?? _EmptyTaskRepository();
   final resolvedOverviewUseCase =
@@ -556,6 +611,9 @@ Future<void> _pumpApp(
       overrides: [
         authSessionRepositoryProvider.overrideWithValue(authRepository),
         taskRepositoryProvider.overrideWithValue(resolvedTaskRepository),
+        categoryRepositoryProvider.overrideWithValue(
+          categoryRepository ?? _MemoryCategoryRepository(),
+        ),
         getTodayOverviewUseCaseProvider.overrideWithValue(
           resolvedOverviewUseCase,
         ),
@@ -763,3 +821,34 @@ class _RecordingTodayOverviewUseCase extends GetTodayOverviewUseCase {
 }
 
 class _UnusedCategoryRepository extends Fake implements CategoryRepository {}
+
+class _MemoryCategoryRepository implements CategoryRepository {
+  _MemoryCategoryRepository({List<Category> categories = const []})
+      : categories = List.of(categories);
+
+  final List<Category> categories;
+  int createCalls = 0;
+
+  @override
+  Future<Result<List<Category>>> getCategories() async =>
+      success(List.unmodifiable(categories));
+
+  @override
+  Future<Result<Category>> createCategory({
+    required String name,
+    required int color,
+  }) async {
+    createCalls++;
+    final category = Category(
+      id: 'created-$createCalls',
+      name: name,
+      color: color,
+      sortOrder: categories.length,
+    );
+    categories.add(category);
+    return success(category);
+  }
+
+  @override
+  Future<Result<void>> deleteCategory(String id) => throw UnimplementedError();
+}
