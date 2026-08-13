@@ -12,6 +12,7 @@ import 'package:nae_mo/features/calendar/presentation/pages/month_view_page.dart
 import 'package:nae_mo/features/calendar/presentation/pages/today_page.dart';
 import 'package:nae_mo/features/calendar/presentation/pages/week_view_page.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
+import 'package:nae_mo/features/category/presentation/pages/category_management_page.dart';
 import 'package:nae_mo/features/task/presentation/pages/new_item_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -88,6 +89,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+        path: AppRoutes.categories,
+        name: 'categories',
+        builder: (context, state) {
+          final returnLocation = _calendarReturnLocation(
+            state.uri.queryParameters['from'],
+          );
+          return CategoryManagementPage(
+            onClose: () => context.go(returnLocation),
+          );
+        },
+      ),
     ],
     errorBuilder: (context, state) => ErrorPage(error: '${state.error}'),
   );
@@ -154,4 +167,5 @@ abstract class AppRoutes {
   static const String week = '/calendar/week';
   static const String month = '/calendar/month';
   static const String add = '/calendar/add';
+  static const String categories = '/categories';
 }
