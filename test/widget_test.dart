@@ -319,6 +319,7 @@ void main() {
       find.byKey(const Key('categoryNameField')),
       '사이드 프로젝트',
     );
+    await tester.pump();
     await tester.tap(find.byKey(const Key('categoryCreateButton')));
     await tester.pumpAndSettle();
 
