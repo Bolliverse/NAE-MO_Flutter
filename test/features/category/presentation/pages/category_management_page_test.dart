@@ -7,9 +7,130 @@ import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/utils/result.dart' as result;
 import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/usecases/create_category_use_case.dart';
+import 'package:nae_mo/features/category/domain/usecases/update_category_use_case.dart';
 import 'package:nae_mo/features/category/presentation/pages/category_management_page.dart';
 
 void main() {
+  const original =
+      Category(id: 'work', name: '업무', color: 0xFF2196F3, sortOrder: 3);
+
+  testWidgets('edit preserves legacy color and replaces the same category',
+      (tester) async {
+    UpdateCategoryParams? submitted;
+    var changes = 0;
+    await _pumpPage(tester,
+        loader: () async => result.success(const [original]),
+        onChanged: () => changes++,
+        updater: (params) async {
+          submitted = params;
+          return result.success(Category(
+              id: params.id,
+              name: params.name,
+              color: params.color,
+              sortOrder: original.sortOrder));
+        });
+    await tester.tap(find.byKey(const Key('categoryRow-work')));
+    await tester.pumpAndSettle();
+    expect(find.text('카테고리 수정'), findsOneWidget);
+    expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('categoryNameField')))
+            .controller!
+            .text,
+        '업무');
+    expect(
+        tester
+            .widget<TextButton>(find.byKey(const Key('categoryCreateButton')))
+            .onPressed,
+        isNull);
+    await tester.enterText(
+        find.byKey(const Key('categoryNameField')), '  회사  ');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('categoryCreateButton')));
+    await tester.pumpAndSettle();
+    expect(submitted!.id, original.id);
+    expect(submitted!.name, '회사');
+    expect(submitted!.color, original.color);
+    expect(changes, 1);
+    expect(find.byKey(const Key('categoryRow-work')), findsOneWidget);
+    expect(find.text('업무'), findsNothing);
+    expect(find.text('회사'), findsOneWidget);
+  });
+
+  testWidgets(
+      'edit failure keeps color and input, blocks pending back, retries',
+      (tester) async {
+    final pending = Completer<result.Result<Category>>();
+    var calls = 0;
+    var changes = 0;
+    await _pumpPage(tester,
+        loader: () async => result.success(const [original]),
+        onChanged: () => changes++,
+        updater: (params) async {
+          calls++;
+          expect(params.color, 0xFFFFA629);
+          if (calls == 1) return pending.future;
+          return result.success(Category(
+              id: params.id,
+              name: params.name,
+              color: params.color,
+              sortOrder: 3));
+        });
+    await tester.tap(find.byKey(const Key('categoryRow-work')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('categoryNameField')), ' ');
+    await tester.pump();
+    expect(
+        tester
+            .widget<TextButton>(find.byKey(const Key('categoryCreateButton')))
+            .onPressed,
+        isNull);
+    await tester.enterText(find.byKey(const Key('categoryNameField')), '프로젝트');
+    await tester.tap(find.byKey(const Key('categoryColorOption-4')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('categoryCreateButton')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('categoryCreateButton')));
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byKey(const Key('categoryEditSheet')), findsOneWidget);
+    expect(calls, 1);
+    pending.complete(result.fail(const CacheFailure('write failed')));
+    await tester.pumpAndSettle();
+    expect(changes, 0);
+    expect(find.text('카테고리를 수정하지 못했습니다. 다시 시도해 주세요.'), findsOneWidget);
+    expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('categoryNameField')))
+            .controller!
+            .text,
+        '프로젝트');
+    await tester.tap(find.byKey(const Key('categoryCreateButton')));
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    expect(changes, 1);
+    expect(find.text('프로젝트'), findsOneWidget);
+  });
+
+  testWidgets('cancelling an edit leaves the category unchanged',
+      (tester) async {
+    var calls = 0;
+    await _pumpPage(tester,
+        loader: () async => result.success(const [original]),
+        updater: (_) async {
+          calls++;
+          return result.success(original);
+        });
+    await tester.tap(find.byKey(const Key('categoryRow-work')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('categoryNameField')), '취소할 변경');
+    await tester.tap(find.byKey(const Key('categoryCreateCancelButton')));
+    await tester.pumpAndSettle();
+    expect(calls, 0);
+    expect(find.text('업무'), findsOneWidget);
+    expect(find.text('취소할 변경'), findsNothing);
+  });
   testWidgets('loads and stably sorts category rows', (tester) async {
     await _pumpPage(
       tester,
@@ -228,6 +349,8 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   required CategoryLoader loader,
   CategoryCreator? creator,
+  CategoryUpdater? updater,
+  VoidCallback? onChanged,
   VoidCallback? onClose,
   bool settle = true,
 }) async {
@@ -241,6 +364,8 @@ Future<void> _pumpPage(
         home: CategoryManagementPage(
           onClose: onClose ?? () {},
           loader: loader,
+          updater: updater,
+          onChanged: onChanged,
           creator: creator ??
               (params) async => result.success(
                     Category(
