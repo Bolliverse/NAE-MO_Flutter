@@ -327,11 +327,31 @@ void main() {
     expect(find.byKey(const Key('categoryRow-created-1')), findsOneWidget);
     expect(find.text('사이드 프로젝트'), findsOneWidget);
 
+    await tester.tap(find.byKey(const Key('categoryRow-created-1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('categoryNameField')), '개인 프로젝트');
+    await tester.tap(find.byKey(const Key('categoryColorOption-4')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('categoryCreateButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('사이드 프로젝트'), findsNothing);
+    expect(find.text('개인 프로젝트'), findsOneWidget);
+    expect(categoryRepository.categories.last.color, 0xFFFFA629);
+
     await tester.tap(find.byKey(const Key('categoryCloseButton')));
     await tester.pumpAndSettle();
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.week);
     expect(find.textContaining('Week View'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('newItemCategoryButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('개인 프로젝트'), findsOneWidget);
+    expect(find.text('사이드 프로젝트'), findsNothing);
   });
 
   testWidgets('new item action opens one shell and returns to the same Daily',
@@ -851,4 +871,20 @@ class _MemoryCategoryRepository implements CategoryRepository {
 
   @override
   Future<Result<void>> deleteCategory(String id) => throw UnimplementedError();
+  @override
+  Future<Result<Category>> updateCategory({
+    required String id,
+    required String name,
+    required int color,
+  }) async {
+    final index = categories.indexWhere((category) => category.id == id);
+    if (index < 0) return fail(const CacheFailure('missing category'));
+    final updated = Category(
+        id: id,
+        name: name,
+        color: color,
+        sortOrder: categories[index].sortOrder);
+    categories[index] = updated;
+    return success(updated);
+  }
 }
