@@ -56,4 +56,19 @@ class CategoryRepositoryImpl implements CategoryRepository {
       return fail(CacheFailure(e.message));
     }
   }
+
+  @override
+  Future<Result<Category>> updateCategory({
+    required String id,
+    required String name,
+    required int color,
+  }) async {
+    try {
+      return success(_mapper.toEntity(
+        await _dataSource.update(id: id, name: name, color: color),
+      ));
+    } on CacheException catch (e) {
+      return fail(CacheFailure(e.message));
+    }
+  }
 }
