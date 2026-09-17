@@ -9,4 +9,9 @@ abstract interface class CategoryLocalDataSource {
     required int sortOrder,
   });
   Future<void> delete(String id);
+  Future<CategoryTableData> update({
+    required String id,
+    required String name,
+    required int color,
+  });
 }
