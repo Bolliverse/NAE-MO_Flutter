@@ -98,6 +98,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           );
           return CategoryManagementPage(
             onClose: () => context.go(returnLocation),
+            onChanged: () => ref.invalidate(todayViewModelProvider),
           );
         },
       ),
