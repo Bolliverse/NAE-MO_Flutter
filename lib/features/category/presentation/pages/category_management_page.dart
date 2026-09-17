@@ -5,10 +5,14 @@ import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/usecases/create_category_use_case.dart';
 import 'package:nae_mo/features/category/domain/usecases/get_categories_use_case.dart';
+import 'package:nae_mo/features/category/domain/usecases/update_category_use_case.dart';
 
 typedef CategoryLoader = Future<Result<List<Category>>> Function();
 typedef CategoryCreator = Future<Result<Category>> Function(
   CreateCategoryParams params,
+);
+typedef CategoryUpdater = Future<Result<Category>> Function(
+  UpdateCategoryParams params,
 );
 
 const _navy = Color(0xFF2E4175);
@@ -19,12 +23,16 @@ class CategoryManagementPage extends ConsumerStatefulWidget {
     required this.onClose,
     this.loader,
     this.creator,
+    this.updater,
+    this.onChanged,
     super.key,
   });
 
   final VoidCallback onClose;
   final CategoryLoader? loader;
   final CategoryCreator? creator;
+  final CategoryUpdater? updater;
+  final VoidCallback? onChanged;
 
   @override
   ConsumerState<CategoryManagementPage> createState() =>
@@ -62,7 +70,7 @@ class _CategoryManagementPageState
                   const Divider(height: 1, color: _border),
                   Expanded(child: _buildContent()),
                   if (_status == _CategoryListStatus.loaded)
-                    _AddBar(onPressed: _showCreateSheet),
+                    _AddBar(onPressed: () => _showEditor()),
                 ],
               ),
             ),
@@ -76,7 +84,10 @@ class _CategoryManagementPageState
     return switch (_status) {
       _CategoryListStatus.loading => const _CategoryLoading(),
       _CategoryListStatus.failed => _CategoryFailure(onRetry: _load),
-      _CategoryListStatus.loaded => _CategoryList(categories: _categories),
+      _CategoryListStatus.loaded => _CategoryList(
+          categories: _categories,
+          onEdit: _showEditor,
+        ),
     };
   }
 
@@ -104,21 +115,38 @@ class _CategoryManagementPageState
     });
   }
 
-  Future<void> _showCreateSheet() async {
-    final create =
-        widget.creator ?? ref.read(createCategoryUseCaseProvider).call;
-    final created = await showModalBottomSheet<Category>(
+  Future<void> _showEditor([Category? category]) async {
+    final CategoryCreator save;
+    if (category == null) {
+      save = widget.creator ?? ref.read(createCategoryUseCaseProvider).call;
+    } else {
+      final update =
+          widget.updater ?? ref.read(updateCategoryUseCaseProvider).call;
+      save = (params) => update(UpdateCategoryParams(
+            id: category.id,
+            name: params.name,
+            color: params.color,
+          ));
+    }
+    final saved = await showModalBottomSheet<Category>(
       context: context,
       backgroundColor: Colors.white,
       isDismissible: false,
       enableDrag: false,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (sheetContext) => _CreateCategorySheet(creator: create),
+      builder: (sheetContext) => _CategoryEditorSheet(
+        save: save,
+        category: category,
+      ),
     );
-    if (!mounted || created == null) return;
+    if (!mounted || saved == null) return;
 
-    setState(() => _categories = _sorted([..._categories, created]));
+    setState(() => _categories = _sorted([
+          ..._categories.where((item) => item.id != saved.id),
+          saved,
+        ]));
+    widget.onChanged?.call();
   }
 }
 
@@ -235,9 +263,10 @@ class _CategoryFailure extends StatelessWidget {
 }
 
 class _CategoryList extends StatelessWidget {
-  const _CategoryList({required this.categories});
+  const _CategoryList({required this.categories, required this.onEdit});
 
   final List<Category> categories;
+  final ValueChanged<Category> onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -270,8 +299,10 @@ class _CategoryList extends StatelessWidget {
                     indent: 42,
                     color: Color(0xFFF0F1F3),
                   ),
-                  itemBuilder: (context, index) =>
-                      _CategoryRow(category: categories[index]),
+                  itemBuilder: (context, index) => _CategoryRow(
+                    category: categories[index],
+                    onTap: () => onEdit(categories[index]),
+                  ),
                 ),
         ),
       ],
@@ -280,36 +311,43 @@ class _CategoryList extends StatelessWidget {
 }
 
 class _CategoryRow extends StatelessWidget {
-  const _CategoryRow({required this.category});
+  const _CategoryRow({required this.category, required this.onTap});
 
   final Category category;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       key: Key('categoryRow-${category.id}'),
       container: true,
-      label: '${category.name}, 카테고리 색상',
-      readOnly: true,
+      label: '${category.name}, 카테고리 수정',
+      button: true,
+      onTap: onTap,
       child: ExcludeSemantics(
-        child: SizedBox(
-          height: 62,
-          child: Row(
-            children: [
-              _ColorDot(color: Color(category.color).withAlpha(255)),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  category.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: const Color(0xFF202124),
-                        fontWeight: FontWeight.w600,
-                      ),
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: 62,
+            child: Row(
+              children: [
+                _ColorDot(color: Color(category.color).withAlpha(255)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    category.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: const Color(0xFF202124),
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
                 ),
-              ),
-            ],
+                const Icon(Icons.chevron_right_rounded,
+                    color: Color(0xFF98A2B3), size: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -353,26 +391,41 @@ class _AddBar extends StatelessWidget {
   }
 }
 
-class _CreateCategorySheet extends StatefulWidget {
-  const _CreateCategorySheet({required this.creator});
+class _CategoryEditorSheet extends StatefulWidget {
+  const _CategoryEditorSheet({required this.save, this.category});
 
-  final CategoryCreator creator;
+  final CategoryCreator save;
+  final Category? category;
 
   @override
-  State<_CreateCategorySheet> createState() => _CreateCategorySheetState();
+  State<_CategoryEditorSheet> createState() => _CategoryEditorSheetState();
 }
 
-class _CreateCategorySheetState extends State<_CreateCategorySheet> {
+class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
   final _nameController = TextEditingController();
-  var _selectedColorIndex = 0;
+  late int _selectedColor;
+  late List<_CategoryColor> _colors;
   var _isSaving = false;
   var _saveFailed = false;
 
-  bool get _canCreate => !_isSaving && _nameController.text.trim().isNotEmpty;
+  bool get _isEditing => widget.category != null;
+  bool get _canCreate =>
+      !_isSaving &&
+      _nameController.text.trim().isNotEmpty &&
+      (!_isEditing ||
+          _nameController.text.trim() != widget.category!.name ||
+          _selectedColor != widget.category!.color);
 
   @override
   void initState() {
     super.initState();
+    _nameController.text = widget.category?.name ?? '';
+    _selectedColor = widget.category?.color ?? _palette.first.value;
+    _colors = [
+      ..._palette,
+      if (!_palette.any((color) => color.value == _selectedColor))
+        _CategoryColor('기존 색상', _selectedColor),
+    ];
     _nameController.addListener(_onNameChanged);
   }
 
@@ -389,7 +442,7 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
     return PopScope(
       canPop: !_isSaving,
       child: Padding(
-        key: const Key('categoryCreateSheet'),
+        key: Key(_isEditing ? 'categoryEditSheet' : 'categoryCreateSheet'),
         padding: EdgeInsets.fromLTRB(
           20,
           8,
@@ -405,7 +458,7 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      '새 카테고리',
+                      _isEditing ? '카테고리 수정' : '새 카테고리',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: const Color(0xFF202124),
                             fontWeight: FontWeight.w700,
@@ -453,14 +506,14 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  for (var index = 0; index < _palette.length; index++)
+                  for (var index = 0; index < _colors.length; index++)
                     _ColorOption(
                       index: index,
-                      option: _palette[index],
-                      selected: index == _selectedColorIndex,
+                      option: _colors[index],
+                      selected: _colors[index].value == _selectedColor,
                       enabled: !_isSaving,
                       onSelected: () => setState(() {
-                        _selectedColorIndex = index;
+                        _selectedColor = _colors[index].value;
                         _saveFailed = false;
                       }),
                     ),
@@ -472,7 +525,9 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
                   key: const Key('categoryCreateError'),
                   liveRegion: true,
                   child: Text(
-                    '카테고리를 만들지 못했습니다. 다시 시도해 주세요.',
+                    _isEditing
+                        ? '카테고리를 수정하지 못했습니다. 다시 시도해 주세요.'
+                        : '카테고리를 만들지 못했습니다. 다시 시도해 주세요.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: const Color(0xFFB42318),
                           fontWeight: FontWeight.w600,
@@ -500,10 +555,10 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
                   ),
                 ),
                 child: _isSaving
-                    ? const Row(
+                    ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox.square(
+                          const SizedBox.square(
                             key: Key('categoryCreateProgress'),
                             dimension: 15,
                             child: CircularProgressIndicator(
@@ -511,13 +566,13 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
                               strokeWidth: 2,
                             ),
                           ),
-                          SizedBox(width: 8),
-                          Text('생성 중'),
+                          const SizedBox(width: 8),
+                          Text(_isEditing ? '저장 중' : '생성 중'),
                         ],
                       )
-                    : const Text(
-                        '생성',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                    : Text(
+                        _isEditing ? '저장' : '생성',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
               ),
             ],
@@ -541,10 +596,10 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
 
     Result<Category> result;
     try {
-      result = await widget.creator(
+      result = await widget.save(
         CreateCategoryParams(
           name: _nameController.text.trim(),
-          color: _palette[_selectedColorIndex].value,
+          color: _selectedColor,
         ),
       );
     } catch (_) {
