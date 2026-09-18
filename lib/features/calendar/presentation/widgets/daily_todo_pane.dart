@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/daily_calendar_pane.dart';
 
@@ -13,6 +14,7 @@ class DailyTodoPinned extends StatelessWidget {
     required this.isCompact,
     required this.pendingTodoIds,
     required this.onToggleTodo,
+    this.onOpen,
   });
 
   final List<TodayEntry> entries;
@@ -20,6 +22,7 @@ class DailyTodoPinned extends StatelessWidget {
   final bool isCompact;
   final Set<String> pendingTodoIds;
   final ValueChanged<String> onToggleTodo;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +35,7 @@ class DailyTodoPinned extends StatelessWidget {
               selectedDate: selectedDate,
               pendingTodoIds: pendingTodoIds,
               onToggleTodo: onToggleTodo,
+              onOpen: onOpen,
             ),
     );
   }
@@ -43,12 +47,14 @@ class _ExpandedPinnedTodo extends StatelessWidget {
     required this.selectedDate,
     required this.pendingTodoIds,
     required this.onToggleTodo,
+    this.onOpen,
   });
 
   final List<TodayEntry> entries;
   final DateTime selectedDate;
   final Set<String> pendingTodoIds;
   final ValueChanged<String> onToggleTodo;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +71,7 @@ class _ExpandedPinnedTodo extends StatelessWidget {
               entry: entries[index],
               isPending: pendingTodoIds.contains(entries[index].task.id),
               onToggleTodo: onToggleTodo,
+              onOpen: onOpen,
               metadata: _pinnedMetadata(entries[index], selectedDate),
             ),
             if (index != entries.length - 1)
@@ -134,12 +141,14 @@ class DailyTodoTimeline extends StatelessWidget {
     required this.isCompact,
     required this.pendingTodoIds,
     required this.onToggleTodo,
+    this.onOpen,
   });
 
   final List<TodayEntry> entries;
   final bool isCompact;
   final Set<String> pendingTodoIds;
   final ValueChanged<String> onToggleTodo;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +217,7 @@ class DailyTodoTimeline extends StatelessWidget {
                 group.entries[index].entry.task.id,
               ),
               onToggleTodo: onToggleTodo,
+              onOpen: onOpen,
               metadata: _time(group.entries[index].entry.task.startDateTime!),
             ),
           ),
@@ -271,12 +281,14 @@ class _TodoRow extends StatelessWidget {
     required this.isPending,
     required this.onToggleTodo,
     required this.metadata,
+    this.onOpen,
   });
 
   final TodayEntry entry;
   final bool isPending;
   final ValueChanged<String> onToggleTodo;
   final String? metadata;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -289,12 +301,26 @@ class _TodoRow extends StatelessWidget {
       container: true,
       excludeSemantics: true,
       label: '${entry.task.title}, $categoryName, $completionName',
-      checked: entry.task.isCompleted,
+      checked: onOpen == null ? entry.task.isCompleted : null,
       enabled: !isPending,
-      onTap: isPending ? null : () => onToggleTodo(entry.task.id),
+      button: onOpen != null,
+      hint: onOpen == null ? null : '항목 수정',
+      customSemanticsActions: onOpen == null || isPending
+          ? null
+          : {
+              CustomSemanticsAction(
+                      label: entry.task.isCompleted ? '미완료로 변경' : '완료로 변경'):
+                  () => onToggleTodo(entry.task.id),
+            },
+      onTap: isPending
+          ? null
+          : () => onOpen != null ? onOpen!(entry) : onToggleTodo(entry.task.id),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: isPending ? null : () => onToggleTodo(entry.task.id),
+        onTap: isPending
+            ? null
+            : () =>
+                onOpen != null ? onOpen!(entry) : onToggleTodo(entry.task.id),
         child: SizedBox(
           height: 56,
           child: Row(
