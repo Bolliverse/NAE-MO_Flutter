@@ -45,7 +45,12 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
   @override
   Future<void> delete(String id) async {
     try {
-      await (_db.delete(_db.categoryTable)..where((t) => t.id.equals(id))).go();
+      await _db.transaction(() async {
+        await (_db.update(_db.taskTable)..where((t) => t.categoryId.equals(id)))
+            .write(const TaskTableCompanion(categoryId: Value(null)));
+        await (_db.delete(_db.categoryTable)..where((t) => t.id.equals(id)))
+            .go();
+      });
     } catch (e) {
       throw CacheException('카테고리를 삭제하는 데 실패했습니다: $e');
     }
