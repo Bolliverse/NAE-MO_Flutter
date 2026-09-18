@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/providers/selected_date_provider.dart';
+import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
+import 'package:nae_mo/features/task/presentation/pages/new_item_page.dart';
 import 'package:nae_mo/features/calendar/presentation/states/today_state.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/daily_calendar_pane.dart';
@@ -194,6 +196,22 @@ class _TodayContent extends ConsumerWidget {
         ..showSnackBar(SnackBar(content: Text(failure.message)));
     }
 
+    Future<void> openItem(TodayEntry entry) async {
+      if (state.pendingTodoIds.contains(entry.task.id)) return;
+      final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
+        MaterialPageRoute(
+            builder: (editContext) => NewItemPage(
+                  selectedDate: entry.task.targetDate,
+                  initialTask: entry.task,
+                  onClose: () => Navigator.of(editContext).pop(false),
+                  onSaved: () => Navigator.of(editContext).pop(true),
+                )),
+      );
+      if (context.mounted && saved == true) {
+        ref.invalidate(todayViewModelProvider);
+      }
+    }
+
     return _TodayPageFrame(
       child: KeyedSubtree(
         key: const Key('todayContent'),
@@ -205,11 +223,13 @@ class _TodayContent extends ConsumerWidget {
           calendarPinnedBuilder: (context, layout) => DailyCalendarPinned(
             key: const Key('dailyCalendarPinned'),
             entries: overview.allDayEvents,
+            onOpen: openItem,
             isCompact: layout.isCompact,
           ),
           todoPinnedBuilder: (context, layout) => DailyTodoPinned(
             key: const Key('dailyTodoPinned'),
             entries: todoPinned,
+            onOpen: openItem,
             selectedDate: overview.date,
             isCompact: layout.isCompact,
             pendingTodoIds: state.pendingTodoIds,
@@ -218,11 +238,13 @@ class _TodayContent extends ConsumerWidget {
           calendarTimelineBuilder: (context, layout) => DailyCalendarTimeline(
             key: const Key('dailyCalendarTimeline'),
             entries: calendarTimeline,
+            onOpen: openItem,
             isCompact: layout.isCompact,
           ),
           todoTimelineBuilder: (context, layout) => DailyTodoTimeline(
             key: const Key('dailyTodoTimeline'),
             entries: visibleTodoTimeline,
+            onOpen: openItem,
             isCompact: layout.isCompact,
             pendingTodoIds: state.pendingTodoIds,
             onToggleTodo: toggleTodo,
