@@ -45,11 +45,32 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
   @override
   Future<void> delete(String id) async {
     try {
-      await (_db.delete(_db.categoryTable)
-            ..where((t) => t.id.equals(id)))
-          .go();
+      await (_db.delete(_db.categoryTable)..where((t) => t.id.equals(id))).go();
     } catch (e) {
       throw CacheException('카테고리를 삭제하는 데 실패했습니다: $e');
+    }
+  }
+
+  @override
+  Future<CategoryTableData> update({
+    required String id,
+    required String name,
+    required int color,
+  }) async {
+    try {
+      return await _db.transaction(() async {
+        final count = await (_db.update(_db.categoryTable)
+              ..where((t) => t.id.equals(id)))
+            .write(CategoryTableCompanion(
+          name: Value(name),
+          color: Value(color),
+        ));
+        if (count != 1) throw const CacheException('카테고리를 찾을 수 없습니다.');
+        return (_db.select(_db.categoryTable)..where((t) => t.id.equals(id)))
+            .getSingle();
+      });
+    } catch (e) {
+      throw CacheException('카테고리를 수정하는 데 실패했습니다: $e');
     }
   }
 }

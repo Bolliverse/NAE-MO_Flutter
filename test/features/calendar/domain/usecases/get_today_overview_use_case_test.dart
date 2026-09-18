@@ -492,4 +492,11 @@ class _FakeCategoryRepository implements CategoryRepository {
 
   @override
   Future<Result<void>> deleteCategory(String id) => throw UnimplementedError();
+  @override
+  Future<Result<Category>> updateCategory({
+    required String id,
+    required String name,
+    required int color,
+  }) =>
+      throw UnimplementedError();
 }

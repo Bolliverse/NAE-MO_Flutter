@@ -8,4 +8,9 @@ abstract interface class CategoryRepository {
     required int color,
   });
   Future<Result<void>> deleteCategory(String id);
+  Future<Result<Category>> updateCategory({
+    required String id,
+    required String name,
+    required int color,
+  });
 }
