@@ -13,6 +13,7 @@ class UpdateTaskParams {
   final bool? isAllDay;
   final bool? isCompleted;
   final bool clearTime;
+  final bool clearCategory;
 
   const UpdateTaskParams({
     required this.id,
@@ -26,6 +27,7 @@ class UpdateTaskParams {
     this.isAllDay,
     this.isCompleted,
     this.clearTime = false,
+    this.clearCategory = false,
   });
 
   TaskDraft resolve(Task current) => TaskDraft(
