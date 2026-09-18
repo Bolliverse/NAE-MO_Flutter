@@ -354,6 +354,43 @@ void main() {
     expect(find.text('사이드 프로젝트'), findsNothing);
   });
 
+  testWidgets('deleted categories disappear from the new item picker',
+      (tester) async {
+    final categories = _MemoryCategoryRepository(categories: const [
+      Category(
+          id: 'delete-me', name: '삭제할 카테고리', color: 0xFF67C1DE, sortOrder: 0),
+      Category(
+          id: 'keep-me', name: '유지할 카테고리', color: 0xFFFFA629, sortOrder: 1),
+    ]);
+    await _pumpApp(tester,
+        _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+        categoryRepository: categories);
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalCategoryAction')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('categoryRow-delete-me')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('categoryDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('categoryDeleteConfirmButton')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('categoryRow-delete-me')), findsNothing);
+    expect(find.byKey(const Key('categoryRow-keep-me')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('categoryCloseButton')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalAddAction')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('newItemCategoryButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('삭제할 카테고리'), findsNothing);
+    expect(find.text('유지할 카테고리'), findsOneWidget);
+  });
+
   testWidgets('new item action opens one shell and returns to the same Daily',
       (tester) async {
     await _pumpApp(
@@ -870,7 +907,11 @@ class _MemoryCategoryRepository implements CategoryRepository {
   }
 
   @override
-  Future<Result<void>> deleteCategory(String id) => throw UnimplementedError();
+  Future<Result<void>> deleteCategory(String id) async {
+    categories.removeWhere((category) => category.id == id);
+    return (data: null, failure: null);
+  }
+
   @override
   Future<Result<Category>> updateCategory({
     required String id,
