@@ -217,7 +217,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.week);
-    expect(find.textContaining('Week View'), findsOneWidget);
+    expect(find.byKey(const Key('weekDays')), findsOneWidget);
     expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         1);
@@ -343,7 +343,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.week);
-    expect(find.textContaining('Week View'), findsOneWidget);
+    expect(find.byKey(const Key('weekDays')), findsOneWidget);
     await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('globalAddAction')));
@@ -449,7 +449,7 @@ void main() {
 
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.week);
-    expect(find.textContaining('Week View'), findsOneWidget);
+    expect(find.byKey(const Key('weekDays')), findsOneWidget);
   });
 
   testWidgets('saving a new item returns to refreshed Today', (tester) async {
