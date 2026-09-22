@@ -14,6 +14,96 @@ void main() {
   const original =
       Category(id: 'work', name: '업무', color: 0xFF2196F3, sortOrder: 3);
 
+  testWidgets('delete requires confirmation and removes the last category',
+      (tester) async {
+    var calls = 0;
+    var changes = 0;
+    await _pumpPage(tester,
+        loader: () async => result.success(const [original]),
+        onChanged: () => changes++,
+        deleter: (id) async {
+          expect(id, 'work');
+          calls++;
+          return (data: null, failure: null);
+        });
+    await tester.tap(find.byKey(const Key('categoryRow-work')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('categoryDeleteButton')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('연결된 일정과 Todo는 유지'), findsOneWidget);
+    expect(calls, 0);
+    await tester.tap(find.byKey(const Key('categoryDeleteCancelButton')));
+    await tester.pumpAndSettle();
+    expect(calls, 0);
+    expect(changes, 0);
+    expect(find.byKey(const Key('categoryEditSheet')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('categoryDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('categoryDeleteConfirmButton')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(changes, 1);
+    expect(find.byKey(const Key('categoryEditSheet')), findsNothing);
+    expect(find.byKey(const Key('categoryEmptyState')), findsOneWidget);
+  });
+
+  testWidgets(
+      'delete locks pending actions and preserves form after failure for retry',
+      (tester) async {
+    final pending = Completer<result.Result<void>>();
+    var calls = 0;
+    var changes = 0;
+    await _pumpPage(tester,
+        loader: () async => result.success(const [original]),
+        onChanged: () => changes++,
+        deleter: (_) async {
+          calls++;
+          if (calls == 1) return pending.future;
+          return (data: null, failure: null);
+        });
+    await tester.tap(find.byKey(const Key('categoryRow-work')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('categoryNameField')), '아직 저장하지 않은 이름');
+    await tester.tap(find.byKey(const Key('categoryDeleteButton')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('‘업무’'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('categoryDeleteConfirmButton')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byKey(const Key('categoryEditSheet')), findsOneWidget);
+    expect(
+        tester
+            .widget<TextButton>(find.byKey(const Key('categoryDeleteButton')))
+            .onPressed,
+        isNull);
+    expect(
+        tester
+            .widget<TextButton>(find.byKey(const Key('categoryCreateButton')))
+            .onPressed,
+        isNull);
+    expect(calls, 1);
+    pending.completeError(StateError('simulated failure'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('categoryDeleteError')), findsOneWidget);
+    expect(changes, 0);
+    expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('categoryNameField')))
+            .controller!
+            .text,
+        '아직 저장하지 않은 이름');
+    await tester.tap(find.byKey(const Key('categoryDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('categoryDeleteConfirmButton')));
+    await tester.pumpAndSettle();
+    expect(calls, 2);
+    expect(changes, 1);
+    expect(find.byKey(const Key('categoryEmptyState')), findsOneWidget);
+  });
+
   testWidgets('edit preserves legacy color and replaces the same category',
       (tester) async {
     UpdateCategoryParams? submitted;
@@ -350,6 +440,7 @@ Future<void> _pumpPage(
   required CategoryLoader loader,
   CategoryCreator? creator,
   CategoryUpdater? updater,
+  CategoryDeleter? deleter,
   VoidCallback? onChanged,
   VoidCallback? onClose,
   bool settle = true,
@@ -365,6 +456,7 @@ Future<void> _pumpPage(
           onClose: onClose ?? () {},
           loader: loader,
           updater: updater,
+          deleter: deleter,
           onChanged: onChanged,
           creator: creator ??
               (params) async => result.success(

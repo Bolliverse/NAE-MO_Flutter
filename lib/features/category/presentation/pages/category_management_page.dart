@@ -6,6 +6,7 @@ import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/usecases/create_category_use_case.dart';
 import 'package:nae_mo/features/category/domain/usecases/get_categories_use_case.dart';
 import 'package:nae_mo/features/category/domain/usecases/update_category_use_case.dart';
+import 'package:nae_mo/features/category/domain/usecases/delete_category_use_case.dart';
 
 typedef CategoryLoader = Future<Result<List<Category>>> Function();
 typedef CategoryCreator = Future<Result<Category>> Function(
@@ -14,6 +15,8 @@ typedef CategoryCreator = Future<Result<Category>> Function(
 typedef CategoryUpdater = Future<Result<Category>> Function(
   UpdateCategoryParams params,
 );
+typedef CategoryDeleter = Future<Result<void>> Function(String id);
+typedef _EditorResult = ({Category? saved, bool deleted});
 
 const _navy = Color(0xFF2E4175);
 const _border = Color(0xFFE4E7EC);
@@ -24,6 +27,7 @@ class CategoryManagementPage extends ConsumerStatefulWidget {
     this.loader,
     this.creator,
     this.updater,
+    this.deleter,
     this.onChanged,
     super.key,
   });
@@ -32,6 +36,7 @@ class CategoryManagementPage extends ConsumerStatefulWidget {
   final CategoryLoader? loader;
   final CategoryCreator? creator;
   final CategoryUpdater? updater;
+  final CategoryDeleter? deleter;
   final VoidCallback? onChanged;
 
   @override
@@ -128,7 +133,7 @@ class _CategoryManagementPageState
             color: params.color,
           ));
     }
-    final saved = await showModalBottomSheet<Category>(
+    final result = await showModalBottomSheet<_EditorResult>(
       context: context,
       backgroundColor: Colors.white,
       isDismissible: false,
@@ -138,13 +143,18 @@ class _CategoryManagementPageState
       builder: (sheetContext) => _CategoryEditorSheet(
         save: save,
         category: category,
+        delete: category == null
+            ? null
+            : () => (widget.deleter ??
+                ref.read(deleteCategoryUseCaseProvider).call)(category.id),
       ),
     );
-    if (!mounted || saved == null) return;
+    if (!mounted || result == null) return;
 
     setState(() => _categories = _sorted([
-          ..._categories.where((item) => item.id != saved.id),
-          saved,
+          ..._categories.where((item) =>
+              item.id != (result.deleted ? category!.id : result.saved!.id)),
+          if (!result.deleted) result.saved!,
         ]));
     widget.onChanged?.call();
   }
@@ -392,10 +402,11 @@ class _AddBar extends StatelessWidget {
 }
 
 class _CategoryEditorSheet extends StatefulWidget {
-  const _CategoryEditorSheet({required this.save, this.category});
+  const _CategoryEditorSheet({required this.save, this.category, this.delete});
 
   final CategoryCreator save;
   final Category? category;
+  final Future<Result<void>> Function()? delete;
 
   @override
   State<_CategoryEditorSheet> createState() => _CategoryEditorSheetState();
@@ -407,6 +418,8 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
   late List<_CategoryColor> _colors;
   var _isSaving = false;
   var _saveFailed = false;
+  var _isDeleting = false;
+  var _deleteFailed = false;
 
   bool get _isEditing => widget.category != null;
   bool get _canCreate =>
@@ -567,7 +580,11 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Text(_isEditing ? '저장 중' : '생성 중'),
+                          Text(_isDeleting
+                              ? '삭제 중'
+                              : _isEditing
+                                  ? '저장 중'
+                                  : '생성 중'),
                         ],
                       )
                     : Text(
@@ -575,6 +592,27 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
               ),
+              if (widget.delete != null) ...[
+                const SizedBox(height: 8),
+                if (_deleteFailed)
+                  Semantics(
+                    liveRegion: true,
+                    child: const Text(
+                      '카테고리를 삭제하지 못했습니다. 다시 시도해 주세요.',
+                      key: Key('categoryDeleteError'),
+                      style: TextStyle(color: Color(0xFFB42318)),
+                    ),
+                  ),
+                TextButton(
+                  key: const Key('categoryDeleteButton'),
+                  onPressed: _isSaving ? null : _delete,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFB42318),
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('카테고리 삭제'),
+                ),
+              ],
             ],
           ),
         ),
@@ -608,13 +646,68 @@ class _CategoryEditorSheetState extends State<_CategoryEditorSheet> {
     if (!mounted) return;
 
     if (result.isSuccess) {
-      Navigator.of(context).pop(result.data!);
+      Navigator.of(context)
+          .pop<_EditorResult>((saved: result.data!, deleted: false));
       return;
     }
 
     setState(() {
       _isSaving = false;
       _saveFailed = true;
+    });
+  }
+
+  Future<void> _delete() async {
+    if (_isSaving) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('카테고리를 삭제할까요?'),
+        content: Text('‘${widget.category!.name}’ 카테고리를 삭제합니다.\n'
+            '연결된 일정과 Todo는 유지되며, 카테고리 없음으로 바뀝니다.'),
+        actions: [
+          TextButton(
+            key: const Key('categoryDeleteCancelButton'),
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(foregroundColor: _navy),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            key: const Key('categoryDeleteConfirmButton'),
+            onPressed: () => Navigator.of(context).pop(true),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFFB42318)),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    setState(() {
+      _isSaving = true;
+      _isDeleting = true;
+      _deleteFailed = false;
+      _saveFailed = false;
+    });
+    Result<void> result;
+    try {
+      result = await widget.delete!();
+    } catch (_) {
+      result = fail(const CacheFailure('category delete failed'));
+    }
+    if (!mounted) return;
+    // Successful void results have null data; isSuccess requires non-null data.
+    if (result.failure == null) {
+      Navigator.of(context).pop<_EditorResult>((saved: null, deleted: true));
+      return;
+    }
+    setState(() {
+      _isSaving = false;
+      _isDeleting = false;
+      _deleteFailed = true;
     });
   }
 }
