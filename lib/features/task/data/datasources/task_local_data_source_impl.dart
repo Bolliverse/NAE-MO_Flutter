@@ -135,7 +135,9 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           targetDate: Value(
             _dateOnly(params.targetDate ?? current.targetDate),
           ),
-          categoryId: Value(params.categoryId ?? current.categoryId),
+          categoryId: Value(params.clearCategory
+              ? null
+              : params.categoryId ?? current.categoryId),
           hasTime: Value(params.hasTime ?? current.hasTime),
           startDateTime: params.clearTime
               ? const Value(null)

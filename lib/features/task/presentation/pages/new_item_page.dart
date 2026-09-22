@@ -5,6 +5,8 @@ import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/usecases/create_task_use_case.dart';
 import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.dart';
+import 'package:nae_mo/features/task/domain/usecases/params/update_task_params.dart';
+import 'package:nae_mo/features/task/domain/usecases/update_task_use_case.dart';
 import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft.dart';
 import 'package:nae_mo/features/task/presentation/widgets/new_item_category_input.dart';
 
@@ -14,6 +16,7 @@ typedef NewItemTimePicker = Future<TimeOfDay?> Function(
 );
 
 typedef NewItemSaver = Future<Result<Task>> Function(CreateTaskParams params);
+typedef ItemUpdater = Future<Result<Task>> Function(UpdateTaskParams params);
 
 CreateTaskParams buildNewItemParams({
   required String title,
@@ -57,6 +60,8 @@ class NewItemPage extends ConsumerStatefulWidget {
     this.timePicker,
     this.categoryLoader,
     this.saver,
+    this.initialTask,
+    this.updater,
     super.key,
   });
 
@@ -66,6 +71,8 @@ class NewItemPage extends ConsumerStatefulWidget {
   final NewItemTimePicker? timePicker;
   final NewItemCategoryLoader? categoryLoader;
   final NewItemSaver? saver;
+  final Task? initialTask;
+  final ItemUpdater? updater;
 
   @override
   ConsumerState<NewItemPage> createState() => _NewItemPageState();
@@ -79,6 +86,7 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
   String? _selectedCategoryId;
   bool _isSaving = false;
   bool _saveFailed = false;
+  late DateTime _date;
 
   bool get _canSave {
     if (_isSaving || _titleController.text.trim().isEmpty) return false;
@@ -91,6 +99,25 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
   @override
   void initState() {
     super.initState();
+    final task = widget.initialTask;
+    _date = (task?.targetDate ?? widget.selectedDate).toLocal();
+    if (task != null) {
+      _titleController.text = task.title;
+      _selectedCategoryId = task.categoryId;
+      _draft = NewItemScheduleDraft(
+        kind: task.isEvent ? NewItemKind.event : NewItemKind.todo,
+        eventMode:
+            task.isAllDay ? NewItemTimeMode.allDay : NewItemTimeMode.timed,
+        todoMode:
+            task.hasTime ? NewItemTimeMode.timed : NewItemTimeMode.untimed,
+        startTime: task.startDateTime == null
+            ? null
+            : TimeOfDay.fromDateTime(task.startDateTime!.toLocal()),
+        endTime: task.endDateTime == null
+            ? null
+            : TimeOfDay.fromDateTime(task.endDateTime!.toLocal()),
+      );
+    }
     _titleController.addListener(_onTitleChanged);
   }
 
@@ -103,7 +130,7 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
 
   @override
   Widget build(BuildContext context) {
-    final date = widget.selectedDate.toLocal();
+    final date = _date;
 
     return PopScope(
       canPop: false,
@@ -120,6 +147,7 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
               child: Column(
                 children: [
                   _Header(
+                    title: widget.initialTask == null ? '새 항목 추가' : '항목 수정',
                     onClose: _isSaving ? null : widget.onClose,
                     canSave: _canSave,
                     isSaving: _isSaving,
@@ -152,16 +180,28 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
                           children: [
                             const _FieldLabel('날짜'),
                             const SizedBox(height: 8),
-                            _FixedDate(date: date),
+                            if (widget.initialTask == null)
+                              _FixedDate(date: date)
+                            else
+                              InkWell(
+                                key: const Key('editItemDateButton'),
+                                onTap: _selectDate,
+                                child: _FixedDate(date: date, readOnly: false),
+                              ),
                             const SizedBox(height: 28),
                             const _FieldLabel('종류'),
                             const SizedBox(height: 8),
-                            _KindSelector(
-                              selected: _draft.kind,
-                              onSelected: (kind) => _updateForm(
-                                () => _draft = _draft.withKind(kind),
+                            if (widget.initialTask != null)
+                              Text(_draft.kind == NewItemKind.event
+                                  ? '일정'
+                                  : 'Todo')
+                            else
+                              _KindSelector(
+                                selected: _draft.kind,
+                                onSelected: (kind) => _updateForm(
+                                  () => _draft = _draft.withKind(kind),
+                                ),
                               ),
-                            ),
                             const SizedBox(height: 28),
                             const _FieldLabel('제목'),
                             const SizedBox(height: 8),
@@ -258,6 +298,26 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
     });
   }
 
+  Future<void> _selectDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(_date.year - 100),
+      lastDate: DateTime(_date.year + 100, 12, 31),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: _navy,
+              surface: Colors.white,
+              surfaceTint: Colors.transparent),
+        ),
+        child: child!,
+      ),
+    );
+    if (!mounted || selected == null) return;
+    _updateForm(() => _date = selected);
+  }
+
   void _onTitleChanged() {
     if (!mounted) return;
     setState(() => _saveFailed = false);
@@ -279,15 +339,34 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
 
     final params = buildNewItemParams(
       title: _titleController.text,
-      selectedDate: widget.selectedDate,
+      selectedDate: _date,
       draft: _draft,
       categoryId: _selectedCategoryId,
     );
-    final save = widget.saver ?? ref.read(createTaskUseCaseProvider).call;
 
     Result<Task> result;
     try {
-      result = await save(params);
+      final task = widget.initialTask;
+      if (task == null) {
+        result = await (widget.saver ??
+            ref.read(createTaskUseCaseProvider).call)(params);
+      } else {
+        result =
+            await (widget.updater ?? ref.read(updateTaskUseCaseProvider).call)(
+          UpdateTaskParams(
+            id: task.id,
+            title: params.title,
+            targetDate: params.targetDate,
+            categoryId: params.categoryId,
+            clearCategory: params.categoryId == null,
+            hasTime: params.hasTime,
+            startDateTime: params.startDateTime,
+            endDateTime: params.endDateTime,
+            isAllDay: params.isAllDay,
+            clearTime: !params.hasTime,
+          ),
+        );
+      }
     } catch (_) {
       result = fail(const CacheFailure('new item save failed'));
     }
@@ -314,6 +393,7 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
 
 class _Header extends StatelessWidget {
   const _Header({
+    required this.title,
     required this.onClose,
     required this.canSave,
     required this.isSaving,
@@ -321,6 +401,7 @@ class _Header extends StatelessWidget {
   });
 
   final VoidCallback? onClose;
+  final String title;
   final bool canSave;
   final bool isSaving;
   final VoidCallback onSave;
@@ -342,7 +423,7 @@ class _Header extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '새 항목 추가',
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -384,15 +465,17 @@ class _Header extends StatelessWidget {
 }
 
 class _FixedDate extends StatelessWidget {
-  const _FixedDate({required this.date});
+  const _FixedDate({required this.date, this.readOnly = true});
 
   final DateTime date;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       label: '선택 날짜 ${date.year}년 ${date.month}월 ${date.day}일',
-      readOnly: true,
+      readOnly: readOnly,
+      button: !readOnly,
       child: ExcludeSemantics(
         child: Container(
           key: const Key('newItemSelectedDate'),

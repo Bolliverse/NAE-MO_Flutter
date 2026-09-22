@@ -12,10 +12,12 @@ class DailyCalendarPinned extends StatelessWidget {
     super.key,
     required this.entries,
     required this.isCompact,
+    this.onOpen,
   });
 
   final List<TodayEntry> entries;
   final bool isCompact;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -23,15 +25,16 @@ class DailyCalendarPinned extends StatelessWidget {
       color: Colors.white,
       child: isCompact
           ? _CompactPinnedCalendar(entries: entries)
-          : _ExpandedPinnedCalendar(entries: entries),
+          : _ExpandedPinnedCalendar(entries: entries, onOpen: onOpen),
     );
   }
 }
 
 class _ExpandedPinnedCalendar extends StatelessWidget {
-  const _ExpandedPinnedCalendar({required this.entries});
+  const _ExpandedPinnedCalendar({required this.entries, this.onOpen});
 
   final List<TodayEntry> entries;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +47,13 @@ class _ExpandedPinnedCalendar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (var index = 0; index < entries.length; index++) ...[
-            _AllDayBar(entry: entries[index]),
+            Semantics(
+              button: onOpen != null,
+              child: InkWell(
+                onTap: onOpen == null ? null : () => onOpen!(entries[index]),
+                child: _AllDayBar(entry: entries[index]),
+              ),
+            ),
             if (index != entries.length - 1) const SizedBox(height: 4),
           ],
         ],
@@ -140,10 +149,12 @@ class DailyCalendarTimeline extends StatelessWidget {
     super.key,
     required this.entries,
     required this.isCompact,
+    this.onOpen,
   });
 
   final List<TodayEntry> entries;
   final bool isCompact;
+  final ValueChanged<TodayEntry>? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +213,15 @@ class DailyCalendarTimeline extends StatelessWidget {
           height: group.entries[index].durationMinutes /
               60 *
               dailyCalendarHourExtent,
-          child: _ExpandedEventBlock(entry: group.entries[index].entry),
+          child: Semantics(
+            button: onOpen != null,
+            child: InkWell(
+              onTap: onOpen == null
+                  ? null
+                  : () => onOpen!(group.entries[index].entry),
+              child: _ExpandedEventBlock(entry: group.entries[index].entry),
+            ),
+          ),
         ),
     ];
   }

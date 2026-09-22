@@ -21,6 +21,33 @@ void main() {
   );
   final selectedDate = DateTime(2026, 8, 3);
 
+  testWidgets('Todo title opens editing while checkbox only toggles completion',
+      (tester) async {
+    final entry = _todo(
+        id: 'editable',
+        title: '수정할 Todo',
+        targetDate: selectedDate,
+        category: blue);
+    var opened = 0;
+    var toggled = 0;
+    await _pump(
+        tester,
+        DailyTodoPinned(
+            entries: [entry],
+            selectedDate: selectedDate,
+            isCompact: false,
+            pendingTodoIds: const {},
+            onToggleTodo: (_) => toggled++,
+            onOpen: (_) => opened++),
+        size: const Size(390, 220));
+    await tester.tap(find.text('수정할 Todo'));
+    expect(opened, 1);
+    expect(toggled, 0);
+    await tester.tap(find.byKey(const Key('dailyTodoCheckbox-editable')));
+    expect(opened, 1);
+    expect(toggled, 1);
+  });
+
   testWidgets('expanded pinned Todo renders overdue and completion states',
       (tester) async {
     final semantics = tester.ensureSemantics();

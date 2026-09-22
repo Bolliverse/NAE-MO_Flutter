@@ -17,6 +17,29 @@ void main() {
 
   tearDown(() => database.close());
 
+  test(
+      'explicitly clears category while preserving completion, identity and creation',
+      () async {
+    final task = await dataSource.insert(
+        'existing',
+        CreateTaskParams(
+            title: '완료된 항목',
+            kind: TaskKind.todo,
+            targetDate: DateTime(2026, 9, 18),
+            categoryId: 'category'));
+    await _setCompleted(dataSource, task.id);
+    final renamed =
+        await dataSource.update(UpdateTaskParams(id: task.id, title: '제목 변경'));
+    expect(renamed.categoryId, 'category');
+    final cleared = await dataSource.update(UpdateTaskParams(
+        id: task.id, clearCategory: true, targetDate: DateTime(2026, 9, 19)));
+    expect(cleared.id, task.id);
+    expect(cleared.categoryId, isNull);
+    expect(cleared.isCompleted, isTrue);
+    expect(cleared.createdAt, task.createdAt);
+    expect(cleared.targetDate, DateTime(2026, 9, 19));
+  });
+
   test('insert persists canonical kind and normalized local target date',
       () async {
     final input = DateTime.utc(2026, 8, 12, 18, 45, 3, 4, 5);

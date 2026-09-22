@@ -8,11 +8,140 @@ import 'package:nae_mo/core/utils/result.dart' as result;
 import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.dart';
+import 'package:nae_mo/features/task/domain/usecases/params/update_task_params.dart';
 import 'package:nae_mo/features/task/presentation/pages/new_item_page.dart';
 import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft.dart';
 import 'package:nae_mo/features/task/presentation/widgets/new_item_category_input.dart';
 
 void main() {
+  testWidgets('changing edit date moves both timestamps to the chosen date',
+      (tester) async {
+    final task = Task(
+        id: 'timed',
+        title: '시간 일정',
+        kind: TaskKind.event,
+        targetDate: DateTime(2026, 8, 3),
+        isCompleted: false,
+        hasTime: true,
+        startDateTime: DateTime(2026, 8, 3, 9),
+        endDateTime: DateTime(2026, 8, 3, 10),
+        isAllDay: false,
+        isRecurring: false,
+        createdAt: DateTime(2026, 8, 1));
+    UpdateTaskParams? saved;
+    await _pump(tester, initialTask: task, updater: (params) async {
+      saved = params;
+      return result.success(task);
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('editItemDateButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+    expect(saved!.targetDate, DateTime(2026, 8, 4));
+    expect(saved!.startDateTime, DateTime(2026, 8, 4, 9));
+    expect(saved!.endDateTime, DateTime(2026, 8, 4, 10));
+  });
+  for (final kind in TaskKind.values) {
+    for (final timed in [false, true]) {
+      testWidgets(
+          'edit prefills ${kind.name} timed=$timed and saves existing ID',
+          (tester) async {
+        final date = DateTime(2026, 9, 18);
+        final original = Task(
+            id: 'existing',
+            title: '기존 항목',
+            kind: kind,
+            targetDate: date,
+            categoryId: 'work',
+            isCompleted: kind == TaskKind.todo,
+            hasTime: timed,
+            startDateTime: timed ? DateTime(2026, 9, 18, 9) : null,
+            endDateTime: timed ? DateTime(2026, 9, 18, 10) : null,
+            isAllDay: kind == TaskKind.event && !timed,
+            isRecurring: false,
+            createdAt: date);
+        UpdateTaskParams? saved;
+        await _pump(tester,
+            initialTask: original,
+            categoryLoader: () async => result.success(const [_workCategory]),
+            updater: (params) async {
+              saved = params;
+              return result.success(original);
+            });
+        await tester.pumpAndSettle();
+        expect(find.text('항목 수정'), findsOneWidget);
+        expect(
+            tester
+                .widget<TextField>(find.byKey(const Key('newItemTitleField')))
+                .controller!
+                .text,
+            original.title);
+        expect(find.text('연구'), findsOneWidget);
+        expect(find.byKey(const Key('newItemEventKind')), findsNothing);
+        await tester.enterText(
+            find.byKey(const Key('newItemTitleField')), '  수정된 항목  ');
+        await tester.tap(find.byKey(const Key('newItemCategoryButton')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('newItemCategory-none')));
+        await tester.pumpAndSettle();
+        if (timed) {
+          await _tapVisible(
+              tester,
+              find.byKey(Key(kind == TaskKind.event
+                  ? 'newItemAllDayMode'
+                  : 'newItemUntimedMode')));
+        }
+        await tester.tap(find.byKey(const Key('newItemSaveButton')));
+        await tester.pump();
+        expect(saved!.id, 'existing');
+        expect(saved!.title, '수정된 항목');
+        expect(saved!.targetDate, date);
+        expect(saved!.clearCategory, isTrue);
+        expect(saved!.clearTime, isTrue);
+        expect(saved!.hasTime, isFalse);
+        expect(saved!.isAllDay, kind == TaskKind.event);
+        expect(saved!.isCompleted, isNull);
+        expect(saved!.kind, isNull);
+      });
+    }
+  }
+
+  testWidgets(
+      'failed edit keeps input, blocks pending back, and retries update',
+      (tester) async {
+    final pending = Completer<result.Result<Task>>();
+    var calls = 0;
+    var closed = 0;
+    var saves = 0;
+    await _pump(tester,
+        initialTask: _savedTodo,
+        onClose: () => closed++,
+        onSaved: () => saves++,
+        updater: (_) async {
+          calls++;
+          return calls == 1 ? pending.future : result.success(_savedTodo);
+        });
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('newItemTitleField')), '수정 중');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    expect(closed, 0);
+    expect(_saveButton(tester).onPressed, isNull);
+    pending.complete(result.fail(const CacheFailure('write failed')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('newItemSaveError')), findsOneWidget);
+    expect(find.text('수정 중'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('newItemSaveButton')));
+    await tester.pump();
+    expect(calls, 2);
+    expect(saves, 1);
+  });
   test('category state sorts categories and resolves the selected id', () {
     final state = NewItemCategoryState.loaded(const [
       Category(id: 'b', name: 'B', color: 0xFF76C4DE, sortOrder: 2),
@@ -567,6 +696,8 @@ Future<void> _pump(
   NewItemTimePicker? timePicker,
   NewItemCategoryLoader? categoryLoader,
   NewItemSaver? saver,
+  Task? initialTask,
+  ItemUpdater? updater,
 }) {
   return tester.pumpWidget(
     ProviderScope(
@@ -579,6 +710,8 @@ Future<void> _pump(
           categoryLoader:
               categoryLoader ?? () async => result.success(const []),
           saver: saver,
+          initialTask: initialTask,
+          updater: updater,
         ),
       ),
     ),
