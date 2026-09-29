@@ -4,6 +4,7 @@ import 'package:nae_mo/core/errors/failure.dart';
 import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/usecases/create_task_use_case.dart';
+import 'package:nae_mo/features/task/domain/usecases/delete_task_use_case.dart';
 import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.dart';
 import 'package:nae_mo/features/task/domain/usecases/params/update_task_params.dart';
 import 'package:nae_mo/features/task/domain/usecases/update_task_use_case.dart';
@@ -17,6 +18,7 @@ typedef NewItemTimePicker = Future<TimeOfDay?> Function(
 
 typedef NewItemSaver = Future<Result<Task>> Function(CreateTaskParams params);
 typedef ItemUpdater = Future<Result<Task>> Function(UpdateTaskParams params);
+typedef ItemDeleter = Future<Result<void>> Function(String id);
 
 CreateTaskParams buildNewItemParams({
   required String title,
@@ -62,6 +64,8 @@ class NewItemPage extends ConsumerStatefulWidget {
     this.saver,
     this.initialTask,
     this.updater,
+    this.deleter,
+    this.onDeleted,
     super.key,
   });
 
@@ -73,6 +77,8 @@ class NewItemPage extends ConsumerStatefulWidget {
   final NewItemSaver? saver;
   final Task? initialTask;
   final ItemUpdater? updater;
+  final ItemDeleter? deleter;
+  final VoidCallback? onDeleted;
 
   @override
   ConsumerState<NewItemPage> createState() => _NewItemPageState();
@@ -86,6 +92,8 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
   String? _selectedCategoryId;
   bool _isSaving = false;
   bool _saveFailed = false;
+  bool _isDeleting = false;
+  bool _deleteFailed = false;
   late DateTime _date;
 
   bool get _canSave {
@@ -151,6 +159,7 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
                     onClose: _isSaving ? null : widget.onClose,
                     canSave: _canSave,
                     isSaving: _isSaving,
+                    isDeleting: _isDeleting,
                     onSave: _save,
                   ),
                   const Divider(height: 1, color: Color(0xFFE4E7EC)),
@@ -162,6 +171,22 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                         child: Text(
                           '항목을 저장하지 못했습니다. 다시 시도해 주세요.',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFFB42318),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ),
+                    ),
+                  if (_deleteFailed)
+                    Semantics(
+                      key: const Key('itemDeleteError'),
+                      liveRegion: true,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        child: Text(
+                          '항목을 삭제하지 못했습니다. 다시 시도해 주세요.',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: const Color(0xFFB42318),
@@ -266,6 +291,22 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
                                 onSelectEnd: () => _selectTime(isStart: false),
                               ),
                             ],
+                            if (widget.initialTask != null) ...[
+                              const SizedBox(height: 32),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: TextButton(
+                                  key: const Key('itemDeleteButton'),
+                                  onPressed: _isSaving ? null : _confirmDelete,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFB42318),
+                                  ),
+                                  child: _isDeleting
+                                      ? const Text('삭제 중')
+                                      : const Text('항목 삭제'),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -320,13 +361,17 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
 
   void _onTitleChanged() {
     if (!mounted) return;
-    setState(() => _saveFailed = false);
+    setState(() {
+      _saveFailed = false;
+      _deleteFailed = false;
+    });
   }
 
   void _updateForm(VoidCallback update) {
     setState(() {
       update();
       _saveFailed = false;
+      _deleteFailed = false;
     });
   }
 
@@ -335,6 +380,7 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
     setState(() {
       _isSaving = true;
       _saveFailed = false;
+      _deleteFailed = false;
     });
 
     final params = buildNewItemParams(
@@ -383,6 +429,65 @@ class _NewItemPageState extends ConsumerState<NewItemPage> {
     });
   }
 
+  Future<void> _confirmDelete() async {
+    final task = widget.initialTask;
+    if (task == null || _isSaving) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Text(task.isEvent ? '일정을 삭제할까요?' : 'Todo를 삭제할까요?'),
+        content: Text('‘${task.title}’ 항목을 삭제합니다.\n삭제한 항목은 복구할 수 없습니다.'),
+        actions: [
+          TextButton(
+            key: const Key('itemDeleteCancelButton'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            style: TextButton.styleFrom(foregroundColor: _navy),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            key: const Key('itemDeleteConfirmButton'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style:
+                TextButton.styleFrom(foregroundColor: const Color(0xFFB42318)),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+
+    setState(() {
+      _isSaving = true;
+      _isDeleting = true;
+      _saveFailed = false;
+      _deleteFailed = false;
+    });
+
+    Result<void> result;
+    try {
+      result = await (widget.deleter ??
+          ref.read(deleteTaskUseCaseProvider).call)(task.id);
+    } catch (_) {
+      result = fail(const CacheFailure('item delete failed'));
+    }
+    if (!mounted) return;
+
+    // Successful Result<void> has null data, so inspect the failure field.
+    if (result.failure == null) {
+      widget.onDeleted?.call();
+      return;
+    }
+    setState(() {
+      _isSaving = false;
+      _isDeleting = false;
+      _deleteFailed = true;
+    });
+  }
+
   Future<TimeOfDay?> _showTimePicker(
     BuildContext context,
     TimeOfDay initialTime,
@@ -397,6 +502,7 @@ class _Header extends StatelessWidget {
     required this.onClose,
     required this.canSave,
     required this.isSaving,
+    required this.isDeleting,
     required this.onSave,
   });
 
@@ -404,6 +510,7 @@ class _Header extends StatelessWidget {
   final String title;
   final bool canSave;
   final bool isSaving;
+  final bool isDeleting;
   final VoidCallback onSave;
 
   @override
@@ -437,9 +544,9 @@ class _Header extends StatelessWidget {
             onPressed: canSave ? onSave : null,
             style: TextButton.styleFrom(
               foregroundColor: navy,
-              disabledForegroundColor: isSaving ? navy : null,
+              disabledForegroundColor: isSaving && !isDeleting ? navy : null,
             ),
-            child: isSaving
+            child: isSaving && !isDeleting
                 ? const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
