@@ -519,6 +519,59 @@ void main() {
     expect(taskRepository.createdParams?.targetDate, DateTime(2026, 8, 3));
   });
 
+  testWidgets('deleting an existing Todo returns to refreshed Today',
+      (tester) async {
+    final restoreCompleter = Completer<Result<AuthSession>>();
+    final taskRepository = _SavingTaskRepository();
+    await taskRepository.createTask(CreateTaskParams(
+      title: '삭제할 Todo',
+      kind: domain.TaskKind.todo,
+      targetDate: DateTime(2026, 8, 3),
+    ));
+    final overviewUseCase = _RecordingTodayOverviewUseCase(taskRepository);
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(
+        storedProvider: AuthProviderType.google,
+        restoreCompleter: restoreCompleter,
+      ),
+      settle: false,
+      taskRepository: taskRepository,
+      todayOverviewUseCase: overviewUseCase,
+    );
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(App)),
+      listen: false,
+    );
+    container.read(selectedDateProvider.notifier).select(DateTime(2026, 8, 3));
+    restoreCompleter.complete(success(const AuthenticatedSession(
+      uid: 'google-user',
+      provider: AuthProviderType.google,
+    )));
+    await tester.pumpAndSettle();
+    expect(overviewUseCase.calls, 1);
+
+    await tester.tap(find.byKey(const Key('dailyTodoCompactTapTarget')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('삭제할 Todo'));
+    await tester.pumpAndSettle();
+    expect(find.text('항목 수정'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('itemDeleteButton')));
+    await tester.tap(find.byKey(const Key('itemDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('itemDeleteConfirmButton')));
+    await tester.pumpAndSettle();
+
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.today);
+    expect(find.byKey(const Key('todayContent')), findsOneWidget);
+    expect(find.byKey(const Key('dailyTodoCompactPinned-0')), findsNothing);
+    expect(taskRepository.deletedIds, ['saved-task']);
+    expect(taskRepository.createdTask, isNull);
+    expect(overviewUseCase.calls, 2);
+  });
+
   testWidgets('Settings global action opens a sheet with logout inside',
       (tester) async {
     await _pumpApp(
@@ -809,6 +862,17 @@ class _EmptyTaskRepository implements TaskRepository {
 class _SavingTaskRepository extends _EmptyTaskRepository {
   CreateTaskParams? createdParams;
   domain.Task? createdTask;
+  final deletedIds = <String>[];
+
+  @override
+  Future<Result<void>> deleteTask(String id) async {
+    deletedIds.add(id);
+    if (createdTask?.id == id) {
+      createdTask = null;
+      return success(null);
+    }
+    return fail(const CacheFailure('Task not found'));
+  }
 
   @override
   Future<Result<domain.Task>> createTask(CreateTaskParams params) async {
