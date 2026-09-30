@@ -19,6 +19,9 @@ import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_mode
 import 'package:nae_mo/features/category/data/repositories/category_repository_provider.dart';
 import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
+import 'package:nae_mo/features/routine/data/repositories/routine_repository_impl.dart';
+import 'package:nae_mo/features/routine/domain/entities/routine_definition.dart';
+import 'package:nae_mo/features/routine/domain/repositories/routine_repository.dart';
 import 'package:nae_mo/features/task/data/repositories/task_repository_provider.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart' as domain;
 import 'package:nae_mo/features/task/domain/repositories/task_repository.dart';
@@ -259,27 +262,41 @@ void main() {
     expect(find.text('로그아웃'), findsNothing);
   });
 
-  for (final action in const {
-    'globalRoutineAction': '루틴 관리 화면은 다음 작업에서 제공됩니다.',
-  }.entries) {
-    testWidgets('${action.key} stays on the route and shows a placeholder',
-        (tester) async {
-      await _pumpApp(
-        tester,
-        _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
-      );
+  testWidgets('routine FAB opens management and returns to originating Week',
+      (tester) async {
+    final routines = _MemoryRoutineRepository();
+    await _pumpApp(
+      tester,
+      _FakeAuthSessionRepository(storedProvider: AuthProviderType.google),
+      routineRepository: routines,
+    );
+    await tester.tap(find.byKey(const Key('calendarWeekDestination')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('globalRoutineAction')));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('calendarGlobalMenuButton')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(Key(action.key)));
-      await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.routines);
+    expect(find.byKey(const Key('routineAddButton')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    await tester.tap(find.byKey(const Key('routineAddButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('routineTitleField')), '출근 전 운동');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('routineCreateButton')));
+    await tester.pumpAndSettle();
+    expect(routines.created.single.title, '출근 전 운동');
+    expect(find.text('출근 전 운동'), findsOneWidget);
 
-      expect(_routerOf(tester).routeInformationProvider.value.uri.path,
-          AppRoutes.today);
-      expect(find.text(action.value), findsOneWidget);
-      expect(find.byKey(Key(action.key)), findsNothing);
-    });
-  }
+    await tester.tap(find.byKey(const Key('routineCloseButton')));
+    await tester.pumpAndSettle();
+    expect(_routerOf(tester).routeInformationProvider.value.uri.path,
+        AppRoutes.week);
+    expect(find.byKey(const Key('weekDays')), findsOneWidget);
+  });
 
   testWidgets('category action creates a category and returns to its Daily',
       (tester) async {
@@ -659,6 +676,7 @@ Future<void> _pumpApp(
   TaskRepository? taskRepository,
   GetTodayOverviewUseCase? todayOverviewUseCase,
   CategoryRepository? categoryRepository,
+  RoutineRepository? routineRepository,
 }) async {
   final resolvedTaskRepository = taskRepository ?? _EmptyTaskRepository();
   final resolvedOverviewUseCase =
@@ -671,6 +689,8 @@ Future<void> _pumpApp(
         categoryRepositoryProvider.overrideWithValue(
           categoryRepository ?? _MemoryCategoryRepository(),
         ),
+        if (routineRepository != null)
+          routineRepositoryProvider.overrideWithValue(routineRepository),
         getTodayOverviewUseCaseProvider.overrideWithValue(
           resolvedOverviewUseCase,
         ),
@@ -878,6 +898,20 @@ class _RecordingTodayOverviewUseCase extends GetTodayOverviewUseCase {
 }
 
 class _UnusedCategoryRepository extends Fake implements CategoryRepository {}
+
+class _MemoryRoutineRepository implements RoutineRepository {
+  final created = <RoutineDefinition>[];
+
+  @override
+  Future<Result<List<RoutineDefinition>>> getAll() async =>
+      success(List.unmodifiable(created));
+
+  @override
+  Future<Result<RoutineDefinition>> create(RoutineDefinition routine) async {
+    created.add(routine);
+    return success(routine);
+  }
+}
 
 class _MemoryCategoryRepository implements CategoryRepository {
   _MemoryCategoryRepository({List<Category> categories = const []})
