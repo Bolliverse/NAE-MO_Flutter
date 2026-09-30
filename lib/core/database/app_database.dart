@@ -2,19 +2,20 @@ import 'package:drift/drift.dart';
 import 'package:nae_mo/core/database/connection/connection.dart' as conn;
 import 'package:nae_mo/core/database/app_database.steps.dart';
 import 'package:nae_mo/core/database/tables/category_table.dart';
+import 'package:nae_mo/core/database/tables/routine_table.dart';
 import 'package:nae_mo/core/database/tables/task_table.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:uuid/uuid.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [CategoryTable, TaskTable])
+@DriftDatabase(tables: [CategoryTable, TaskTable, RoutineTable])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? conn.openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +77,11 @@ class AppDatabase extends _$AppDatabase {
                 },
               ),
             );
+          },
+          // Drift guided migrations: https://drift.simonbinder.eu/migrations/
+          from2To3: (m, schema) async {
+            await m.createTable(schema.routines);
+            await m.addColumn(schema.tasks, schema.tasks.routineId);
           },
         ),
       );

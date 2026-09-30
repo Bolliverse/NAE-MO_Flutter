@@ -11,6 +11,9 @@ class TaskTable extends Table {
       textEnum<TaskKind>().withDefault(const Constant('todo'))();
   DateTimeColumn get targetDate => dateTime().withDefault(currentDateAndTime)();
   TextColumn get categoryId => text().nullable()();
+
+  /// Links a materialized occurrence back to its routine definition.
+  TextColumn get routineId => text().nullable()();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   BoolColumn get hasTime => boolean().withDefault(const Constant(false))();
   DateTimeColumn get startDateTime => dateTime().nullable()();

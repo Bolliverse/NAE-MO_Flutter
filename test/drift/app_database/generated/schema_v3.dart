@@ -1,37 +1,27 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
-
-part of 'app_database.dart';
-
+// dart format width=80
+// GENERATED CODE, DO NOT EDIT BY HAND.
 // ignore_for_file: type=lint
-class $CategoryTableTable extends CategoryTable
-    with TableInfo<$CategoryTableTable, CategoryTableData> {
+import 'package:drift/drift.dart';
+
+class Categories extends Table with TableInfo<Categories, CategoriesData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $CategoryTableTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
+  Categories(this.attachedDatabase, [this._alias]);
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _colorMeta = const VerificationMeta('color');
-  @override
   late final GeneratedColumn<int> color = GeneratedColumn<int>(
       'color', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
-  static const VerificationMeta _sortOrderMeta =
-      const VerificationMeta('sortOrder');
-  @override
   late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
       'sort_order', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: const Constant(0));
+      defaultValue: const CustomExpression('0'));
   @override
   List<GeneratedColumn> get $columns => [id, name, color, sortOrder];
   @override
@@ -40,40 +30,11 @@ class $CategoryTableTable extends CategoryTable
   String get actualTableName => $name;
   static const String $name = 'categories';
   @override
-  VerificationContext validateIntegrity(Insertable<CategoryTableData> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('color')) {
-      context.handle(
-          _colorMeta, color.isAcceptableOrUnknown(data['color']!, _colorMeta));
-    } else if (isInserting) {
-      context.missing(_colorMeta);
-    }
-    if (data.containsKey('sort_order')) {
-      context.handle(_sortOrderMeta,
-          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
-    }
-    return context;
-  }
-
-  @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  CategoryTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  CategoriesData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CategoryTableData(
+    return CategoriesData(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
@@ -86,18 +47,17 @@ class $CategoryTableTable extends CategoryTable
   }
 
   @override
-  $CategoryTableTable createAlias(String alias) {
-    return $CategoryTableTable(attachedDatabase, alias);
+  Categories createAlias(String alias) {
+    return Categories(attachedDatabase, alias);
   }
 }
 
-class CategoryTableData extends DataClass
-    implements Insertable<CategoryTableData> {
+class CategoriesData extends DataClass implements Insertable<CategoriesData> {
   final String id;
   final String name;
   final int color;
   final int sortOrder;
-  const CategoryTableData(
+  const CategoriesData(
       {required this.id,
       required this.name,
       required this.color,
@@ -112,8 +72,8 @@ class CategoryTableData extends DataClass
     return map;
   }
 
-  CategoryTableCompanion toCompanion(bool nullToAbsent) {
-    return CategoryTableCompanion(
+  CategoriesCompanion toCompanion(bool nullToAbsent) {
+    return CategoriesCompanion(
       id: Value(id),
       name: Value(name),
       color: Value(color),
@@ -121,10 +81,10 @@ class CategoryTableData extends DataClass
     );
   }
 
-  factory CategoryTableData.fromJson(Map<String, dynamic> json,
+  factory CategoriesData.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CategoryTableData(
+    return CategoriesData(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       color: serializer.fromJson<int>(json['color']),
@@ -142,16 +102,16 @@ class CategoryTableData extends DataClass
     };
   }
 
-  CategoryTableData copyWith(
+  CategoriesData copyWith(
           {String? id, String? name, int? color, int? sortOrder}) =>
-      CategoryTableData(
+      CategoriesData(
         id: id ?? this.id,
         name: name ?? this.name,
         color: color ?? this.color,
         sortOrder: sortOrder ?? this.sortOrder,
       );
-  CategoryTableData copyWithCompanion(CategoryTableCompanion data) {
-    return CategoryTableData(
+  CategoriesData copyWithCompanion(CategoriesCompanion data) {
+    return CategoriesData(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       color: data.color.present ? data.color.value : this.color,
@@ -161,7 +121,7 @@ class CategoryTableData extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('CategoryTableData(')
+    return (StringBuffer('CategoriesData(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('color: $color, ')
@@ -175,27 +135,27 @@ class CategoryTableData extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CategoryTableData &&
+      (other is CategoriesData &&
           other.id == this.id &&
           other.name == this.name &&
           other.color == this.color &&
           other.sortOrder == this.sortOrder);
 }
 
-class CategoryTableCompanion extends UpdateCompanion<CategoryTableData> {
+class CategoriesCompanion extends UpdateCompanion<CategoriesData> {
   final Value<String> id;
   final Value<String> name;
   final Value<int> color;
   final Value<int> sortOrder;
   final Value<int> rowid;
-  const CategoryTableCompanion({
+  const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.color = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  CategoryTableCompanion.insert({
+  CategoriesCompanion.insert({
     required String id,
     required String name,
     required int color,
@@ -204,7 +164,7 @@ class CategoryTableCompanion extends UpdateCompanion<CategoryTableData> {
   })  : id = Value(id),
         name = Value(name),
         color = Value(color);
-  static Insertable<CategoryTableData> custom({
+  static Insertable<CategoriesData> custom({
     Expression<String>? id,
     Expression<String>? name,
     Expression<int>? color,
@@ -220,13 +180,13 @@ class CategoryTableCompanion extends UpdateCompanion<CategoryTableData> {
     });
   }
 
-  CategoryTableCompanion copyWith(
+  CategoriesCompanion copyWith(
       {Value<String>? id,
       Value<String>? name,
       Value<int>? color,
       Value<int>? sortOrder,
       Value<int>? rowid}) {
-    return CategoryTableCompanion(
+    return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       color: color ?? this.color,
@@ -258,7 +218,7 @@ class CategoryTableCompanion extends UpdateCompanion<CategoryTableData> {
 
   @override
   String toString() {
-    return (StringBuffer('CategoryTableCompanion(')
+    return (StringBuffer('CategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('color: $color, ')
@@ -269,116 +229,77 @@ class CategoryTableCompanion extends UpdateCompanion<CategoryTableData> {
   }
 }
 
-class $TaskTableTable extends TaskTable
-    with TableInfo<$TaskTableTable, TaskTableData> {
+class Tasks extends Table with TableInfo<Tasks, TasksData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $TaskTableTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
+  Tasks(this.attachedDatabase, [this._alias]);
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
-  @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
       'title', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
-  @override
-  late final GeneratedColumnWithTypeConverter<TaskKind, String> kind =
-      GeneratedColumn<String>('kind', aliasedName, false,
-              type: DriftSqlType.string,
-              requiredDuringInsert: false,
-              defaultValue: const Constant('todo'))
-          .withConverter<TaskKind>($TaskTableTable.$converterkind);
-  static const VerificationMeta _targetDateMeta =
-      const VerificationMeta('targetDate');
-  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const CustomExpression('\'todo\''));
   late final GeneratedColumn<DateTime> targetDate = GeneratedColumn<DateTime>(
       'target_date', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
-  static const VerificationMeta _categoryIdMeta =
-      const VerificationMeta('categoryId');
-  @override
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
       'category_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _routineIdMeta =
-      const VerificationMeta('routineId');
-  @override
   late final GeneratedColumn<String> routineId = GeneratedColumn<String>(
       'routine_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _isCompletedMeta =
-      const VerificationMeta('isCompleted');
-  @override
   late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
       'is_completed', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_completed" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _hasTimeMeta =
-      const VerificationMeta('hasTime');
-  @override
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> hasTime = GeneratedColumn<bool>(
       'has_time', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("has_time" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _startDateTimeMeta =
-      const VerificationMeta('startDateTime');
-  @override
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<DateTime> startDateTime =
       GeneratedColumn<DateTime>('start_date_time', aliasedName, true,
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _endDateTimeMeta =
-      const VerificationMeta('endDateTime');
-  @override
   late final GeneratedColumn<DateTime> endDateTime = GeneratedColumn<DateTime>(
       'end_date_time', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _isAllDayMeta =
-      const VerificationMeta('isAllDay');
-  @override
   late final GeneratedColumn<bool> isAllDay = GeneratedColumn<bool>(
       'is_all_day', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_all_day" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _isRecurringMeta =
-      const VerificationMeta('isRecurring');
-  @override
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> isRecurring = GeneratedColumn<bool>(
       'is_recurring', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_recurring" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _recurrenceRuleMeta =
-      const VerificationMeta('recurrenceRule');
-  @override
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<String> recurrenceRule = GeneratedColumn<String>(
       'recurrence_rule', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -402,95 +323,17 @@ class $TaskTableTable extends TaskTable
   String get actualTableName => $name;
   static const String $name = 'tasks';
   @override
-  VerificationContext validateIntegrity(Insertable<TaskTableData> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('title')) {
-      context.handle(
-          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
-    } else if (isInserting) {
-      context.missing(_titleMeta);
-    }
-    context.handle(_kindMeta, const VerificationResult.success());
-    if (data.containsKey('target_date')) {
-      context.handle(
-          _targetDateMeta,
-          targetDate.isAcceptableOrUnknown(
-              data['target_date']!, _targetDateMeta));
-    }
-    if (data.containsKey('category_id')) {
-      context.handle(
-          _categoryIdMeta,
-          categoryId.isAcceptableOrUnknown(
-              data['category_id']!, _categoryIdMeta));
-    }
-    if (data.containsKey('routine_id')) {
-      context.handle(_routineIdMeta,
-          routineId.isAcceptableOrUnknown(data['routine_id']!, _routineIdMeta));
-    }
-    if (data.containsKey('is_completed')) {
-      context.handle(
-          _isCompletedMeta,
-          isCompleted.isAcceptableOrUnknown(
-              data['is_completed']!, _isCompletedMeta));
-    }
-    if (data.containsKey('has_time')) {
-      context.handle(_hasTimeMeta,
-          hasTime.isAcceptableOrUnknown(data['has_time']!, _hasTimeMeta));
-    }
-    if (data.containsKey('start_date_time')) {
-      context.handle(
-          _startDateTimeMeta,
-          startDateTime.isAcceptableOrUnknown(
-              data['start_date_time']!, _startDateTimeMeta));
-    }
-    if (data.containsKey('end_date_time')) {
-      context.handle(
-          _endDateTimeMeta,
-          endDateTime.isAcceptableOrUnknown(
-              data['end_date_time']!, _endDateTimeMeta));
-    }
-    if (data.containsKey('is_all_day')) {
-      context.handle(_isAllDayMeta,
-          isAllDay.isAcceptableOrUnknown(data['is_all_day']!, _isAllDayMeta));
-    }
-    if (data.containsKey('is_recurring')) {
-      context.handle(
-          _isRecurringMeta,
-          isRecurring.isAcceptableOrUnknown(
-              data['is_recurring']!, _isRecurringMeta));
-    }
-    if (data.containsKey('recurrence_rule')) {
-      context.handle(
-          _recurrenceRuleMeta,
-          recurrenceRule.isAcceptableOrUnknown(
-              data['recurrence_rule']!, _recurrenceRuleMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    return context;
-  }
-
-  @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  TaskTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  TasksData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return TaskTableData(
+    return TasksData(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
-      kind: $TaskTableTable.$converterkind.fromSql(attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!),
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
       targetDate: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}target_date'])!,
       categoryId: attachedDatabase.typeMapping
@@ -517,22 +360,17 @@ class $TaskTableTable extends TaskTable
   }
 
   @override
-  $TaskTableTable createAlias(String alias) {
-    return $TaskTableTable(attachedDatabase, alias);
+  Tasks createAlias(String alias) {
+    return Tasks(attachedDatabase, alias);
   }
-
-  static JsonTypeConverter2<TaskKind, String, String> $converterkind =
-      const EnumNameConverter<TaskKind>(TaskKind.values);
 }
 
-class TaskTableData extends DataClass implements Insertable<TaskTableData> {
+class TasksData extends DataClass implements Insertable<TasksData> {
   final String id;
   final String title;
-  final TaskKind kind;
+  final String kind;
   final DateTime targetDate;
   final String? categoryId;
-
-  /// Links a materialized occurrence back to its routine definition.
   final String? routineId;
   final bool isCompleted;
   final bool hasTime;
@@ -542,7 +380,7 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
   final bool isRecurring;
   final String? recurrenceRule;
   final DateTime createdAt;
-  const TaskTableData(
+  const TasksData(
       {required this.id,
       required this.title,
       required this.kind,
@@ -562,10 +400,7 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
-    {
-      map['kind'] =
-          Variable<String>($TaskTableTable.$converterkind.toSql(kind));
-    }
+    map['kind'] = Variable<String>(kind);
     map['target_date'] = Variable<DateTime>(targetDate);
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
@@ -590,8 +425,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return map;
   }
 
-  TaskTableCompanion toCompanion(bool nullToAbsent) {
-    return TaskTableCompanion(
+  TasksCompanion toCompanion(bool nullToAbsent) {
+    return TasksCompanion(
       id: Value(id),
       title: Value(title),
       kind: Value(kind),
@@ -619,14 +454,13 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     );
   }
 
-  factory TaskTableData.fromJson(Map<String, dynamic> json,
+  factory TasksData.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return TaskTableData(
+    return TasksData(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
-      kind: $TaskTableTable.$converterkind
-          .fromJson(serializer.fromJson<String>(json['kind'])),
+      kind: serializer.fromJson<String>(json['kind']),
       targetDate: serializer.fromJson<DateTime>(json['targetDate']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       routineId: serializer.fromJson<String?>(json['routineId']),
@@ -646,8 +480,7 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
-      'kind': serializer
-          .toJson<String>($TaskTableTable.$converterkind.toJson(kind)),
+      'kind': serializer.toJson<String>(kind),
       'targetDate': serializer.toJson<DateTime>(targetDate),
       'categoryId': serializer.toJson<String?>(categoryId),
       'routineId': serializer.toJson<String?>(routineId),
@@ -662,10 +495,10 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
     };
   }
 
-  TaskTableData copyWith(
+  TasksData copyWith(
           {String? id,
           String? title,
-          TaskKind? kind,
+          String? kind,
           DateTime? targetDate,
           Value<String?> categoryId = const Value.absent(),
           Value<String?> routineId = const Value.absent(),
@@ -677,7 +510,7 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
           bool? isRecurring,
           Value<String?> recurrenceRule = const Value.absent(),
           DateTime? createdAt}) =>
-      TaskTableData(
+      TasksData(
         id: id ?? this.id,
         title: title ?? this.title,
         kind: kind ?? this.kind,
@@ -695,8 +528,8 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
             recurrenceRule.present ? recurrenceRule.value : this.recurrenceRule,
         createdAt: createdAt ?? this.createdAt,
       );
-  TaskTableData copyWithCompanion(TaskTableCompanion data) {
-    return TaskTableData(
+  TasksData copyWithCompanion(TasksCompanion data) {
+    return TasksData(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       kind: data.kind.present ? data.kind.value : this.kind,
@@ -725,7 +558,7 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
 
   @override
   String toString() {
-    return (StringBuffer('TaskTableData(')
+    return (StringBuffer('TasksData(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('kind: $kind, ')
@@ -763,7 +596,7 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is TaskTableData &&
+      (other is TasksData &&
           other.id == this.id &&
           other.title == this.title &&
           other.kind == this.kind &&
@@ -780,10 +613,10 @@ class TaskTableData extends DataClass implements Insertable<TaskTableData> {
           other.createdAt == this.createdAt);
 }
 
-class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
+class TasksCompanion extends UpdateCompanion<TasksData> {
   final Value<String> id;
   final Value<String> title;
-  final Value<TaskKind> kind;
+  final Value<String> kind;
   final Value<DateTime> targetDate;
   final Value<String?> categoryId;
   final Value<String?> routineId;
@@ -796,7 +629,7 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   final Value<String?> recurrenceRule;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
-  const TaskTableCompanion({
+  const TasksCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.kind = const Value.absent(),
@@ -813,7 +646,7 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  TaskTableCompanion.insert({
+  TasksCompanion.insert({
     required String id,
     required String title,
     this.kind = const Value.absent(),
@@ -831,7 +664,7 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         title = Value(title);
-  static Insertable<TaskTableData> custom({
+  static Insertable<TasksData> custom({
     Expression<String>? id,
     Expression<String>? title,
     Expression<String>? kind,
@@ -867,10 +700,10 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
     });
   }
 
-  TaskTableCompanion copyWith(
+  TasksCompanion copyWith(
       {Value<String>? id,
       Value<String>? title,
-      Value<TaskKind>? kind,
+      Value<String>? kind,
       Value<DateTime>? targetDate,
       Value<String?>? categoryId,
       Value<String?>? routineId,
@@ -883,7 +716,7 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
       Value<String?>? recurrenceRule,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
-    return TaskTableCompanion(
+    return TasksCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
       kind: kind ?? this.kind,
@@ -912,8 +745,7 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
       map['title'] = Variable<String>(title.value);
     }
     if (kind.present) {
-      map['kind'] =
-          Variable<String>($TaskTableTable.$converterkind.toSql(kind.value));
+      map['kind'] = Variable<String>(kind.value);
     }
     if (targetDate.present) {
       map['target_date'] = Variable<DateTime>(targetDate.value);
@@ -956,7 +788,7 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
 
   @override
   String toString() {
-    return (StringBuffer('TaskTableCompanion(')
+    return (StringBuffer('TasksCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('kind: $kind, ')
@@ -977,119 +809,74 @@ class TaskTableCompanion extends UpdateCompanion<TaskTableData> {
   }
 }
 
-class $RoutineTableTable extends RoutineTable
-    with TableInfo<$RoutineTableTable, RoutineTableData> {
+class Routines extends Table with TableInfo<Routines, RoutinesData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $RoutineTableTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
+  Routines(this.attachedDatabase, [this._alias]);
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
-  @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
       'title', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
-  @override
   late final GeneratedColumn<String> kind = GeneratedColumn<String>(
       'kind', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _categoryIdMeta =
-      const VerificationMeta('categoryId');
-  @override
   late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
       'category_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _startDateMeta =
-      const VerificationMeta('startDate');
-  @override
   late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
       'start_date', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _endDateMeta =
-      const VerificationMeta('endDate');
-  @override
   late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
       'end_date', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _frequencyMeta =
-      const VerificationMeta('frequency');
-  @override
   late final GeneratedColumn<String> frequency = GeneratedColumn<String>(
       'frequency', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _creationModeMeta =
-      const VerificationMeta('creationMode');
-  @override
   late final GeneratedColumn<String> creationMode = GeneratedColumn<String>(
       'creation_mode', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _intervalMeta =
-      const VerificationMeta('interval');
-  @override
   late final GeneratedColumn<int> interval = GeneratedColumn<int>(
       'interval', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: const Constant(1));
-  static const VerificationMeta _customUnitMeta =
-      const VerificationMeta('customUnit');
-  @override
+      defaultValue: const CustomExpression('1'));
   late final GeneratedColumn<String> customUnit = GeneratedColumn<String>(
       'custom_unit', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _weekdaysMeta =
-      const VerificationMeta('weekdays');
-  @override
   late final GeneratedColumn<String> weekdays = GeneratedColumn<String>(
       'weekdays', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant(''));
-  static const VerificationMeta _hasTimeMeta =
-      const VerificationMeta('hasTime');
-  @override
+      defaultValue: const CustomExpression('\'\''));
   late final GeneratedColumn<bool> hasTime = GeneratedColumn<bool>(
       'has_time', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("has_time" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _isAllDayMeta =
-      const VerificationMeta('isAllDay');
-  @override
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> isAllDay = GeneratedColumn<bool>(
       'is_all_day', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_all_day" IN (0, 1))'),
-      defaultValue: const Constant(false));
-  static const VerificationMeta _startMinuteMeta =
-      const VerificationMeta('startMinute');
-  @override
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<int> startMinute = GeneratedColumn<int>(
       'start_minute', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _endMinuteMeta =
-      const VerificationMeta('endMinute');
-  @override
   late final GeneratedColumn<int> endMinute = GeneratedColumn<int>(
       'end_minute', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _createdAtMeta =
-      const VerificationMeta('createdAt');
-  @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1115,102 +902,11 @@ class $RoutineTableTable extends RoutineTable
   String get actualTableName => $name;
   static const String $name = 'routines';
   @override
-  VerificationContext validateIntegrity(Insertable<RoutineTableData> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('title')) {
-      context.handle(
-          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
-    } else if (isInserting) {
-      context.missing(_titleMeta);
-    }
-    if (data.containsKey('kind')) {
-      context.handle(
-          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
-    } else if (isInserting) {
-      context.missing(_kindMeta);
-    }
-    if (data.containsKey('category_id')) {
-      context.handle(
-          _categoryIdMeta,
-          categoryId.isAcceptableOrUnknown(
-              data['category_id']!, _categoryIdMeta));
-    }
-    if (data.containsKey('start_date')) {
-      context.handle(_startDateMeta,
-          startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta));
-    } else if (isInserting) {
-      context.missing(_startDateMeta);
-    }
-    if (data.containsKey('end_date')) {
-      context.handle(_endDateMeta,
-          endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta));
-    }
-    if (data.containsKey('frequency')) {
-      context.handle(_frequencyMeta,
-          frequency.isAcceptableOrUnknown(data['frequency']!, _frequencyMeta));
-    } else if (isInserting) {
-      context.missing(_frequencyMeta);
-    }
-    if (data.containsKey('creation_mode')) {
-      context.handle(
-          _creationModeMeta,
-          creationMode.isAcceptableOrUnknown(
-              data['creation_mode']!, _creationModeMeta));
-    } else if (isInserting) {
-      context.missing(_creationModeMeta);
-    }
-    if (data.containsKey('interval')) {
-      context.handle(_intervalMeta,
-          interval.isAcceptableOrUnknown(data['interval']!, _intervalMeta));
-    }
-    if (data.containsKey('custom_unit')) {
-      context.handle(
-          _customUnitMeta,
-          customUnit.isAcceptableOrUnknown(
-              data['custom_unit']!, _customUnitMeta));
-    }
-    if (data.containsKey('weekdays')) {
-      context.handle(_weekdaysMeta,
-          weekdays.isAcceptableOrUnknown(data['weekdays']!, _weekdaysMeta));
-    }
-    if (data.containsKey('has_time')) {
-      context.handle(_hasTimeMeta,
-          hasTime.isAcceptableOrUnknown(data['has_time']!, _hasTimeMeta));
-    }
-    if (data.containsKey('is_all_day')) {
-      context.handle(_isAllDayMeta,
-          isAllDay.isAcceptableOrUnknown(data['is_all_day']!, _isAllDayMeta));
-    }
-    if (data.containsKey('start_minute')) {
-      context.handle(
-          _startMinuteMeta,
-          startMinute.isAcceptableOrUnknown(
-              data['start_minute']!, _startMinuteMeta));
-    }
-    if (data.containsKey('end_minute')) {
-      context.handle(_endMinuteMeta,
-          endMinute.isAcceptableOrUnknown(data['end_minute']!, _endMinuteMeta));
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta,
-          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
-    }
-    return context;
-  }
-
-  @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  RoutineTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  RoutinesData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return RoutineTableData(
+    return RoutinesData(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
@@ -1247,13 +943,12 @@ class $RoutineTableTable extends RoutineTable
   }
 
   @override
-  $RoutineTableTable createAlias(String alias) {
-    return $RoutineTableTable(attachedDatabase, alias);
+  Routines createAlias(String alias) {
+    return Routines(attachedDatabase, alias);
   }
 }
 
-class RoutineTableData extends DataClass
-    implements Insertable<RoutineTableData> {
+class RoutinesData extends DataClass implements Insertable<RoutinesData> {
   final String id;
   final String title;
   final String kind;
@@ -1270,7 +965,7 @@ class RoutineTableData extends DataClass
   final int? startMinute;
   final int? endMinute;
   final DateTime createdAt;
-  const RoutineTableData(
+  const RoutinesData(
       {required this.id,
       required this.title,
       required this.kind,
@@ -1319,8 +1014,8 @@ class RoutineTableData extends DataClass
     return map;
   }
 
-  RoutineTableCompanion toCompanion(bool nullToAbsent) {
-    return RoutineTableCompanion(
+  RoutinesCompanion toCompanion(bool nullToAbsent) {
+    return RoutinesCompanion(
       id: Value(id),
       title: Value(title),
       kind: Value(kind),
@@ -1350,10 +1045,10 @@ class RoutineTableData extends DataClass
     );
   }
 
-  factory RoutineTableData.fromJson(Map<String, dynamic> json,
+  factory RoutinesData.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return RoutineTableData(
+    return RoutinesData(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       kind: serializer.fromJson<String>(json['kind']),
@@ -1395,7 +1090,7 @@ class RoutineTableData extends DataClass
     };
   }
 
-  RoutineTableData copyWith(
+  RoutinesData copyWith(
           {String? id,
           String? title,
           String? kind,
@@ -1412,7 +1107,7 @@ class RoutineTableData extends DataClass
           Value<int?> startMinute = const Value.absent(),
           Value<int?> endMinute = const Value.absent(),
           DateTime? createdAt}) =>
-      RoutineTableData(
+      RoutinesData(
         id: id ?? this.id,
         title: title ?? this.title,
         kind: kind ?? this.kind,
@@ -1430,8 +1125,8 @@ class RoutineTableData extends DataClass
         endMinute: endMinute.present ? endMinute.value : this.endMinute,
         createdAt: createdAt ?? this.createdAt,
       );
-  RoutineTableData copyWithCompanion(RoutineTableCompanion data) {
-    return RoutineTableData(
+  RoutinesData copyWithCompanion(RoutinesCompanion data) {
+    return RoutinesData(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       kind: data.kind.present ? data.kind.value : this.kind,
@@ -1458,7 +1153,7 @@ class RoutineTableData extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('RoutineTableData(')
+    return (StringBuffer('RoutinesData(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('kind: $kind, ')
@@ -1500,7 +1195,7 @@ class RoutineTableData extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is RoutineTableData &&
+      (other is RoutinesData &&
           other.id == this.id &&
           other.title == this.title &&
           other.kind == this.kind &&
@@ -1519,7 +1214,7 @@ class RoutineTableData extends DataClass
           other.createdAt == this.createdAt);
 }
 
-class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
+class RoutinesCompanion extends UpdateCompanion<RoutinesData> {
   final Value<String> id;
   final Value<String> title;
   final Value<String> kind;
@@ -1537,7 +1232,7 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
   final Value<int?> endMinute;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
-  const RoutineTableCompanion({
+  const RoutinesCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.kind = const Value.absent(),
@@ -1556,7 +1251,7 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  RoutineTableCompanion.insert({
+  RoutinesCompanion.insert({
     required String id,
     required String title,
     required String kind,
@@ -1580,7 +1275,7 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
         startDate = Value(startDate),
         frequency = Value(frequency),
         creationMode = Value(creationMode);
-  static Insertable<RoutineTableData> custom({
+  static Insertable<RoutinesData> custom({
     Expression<String>? id,
     Expression<String>? title,
     Expression<String>? kind,
@@ -1620,7 +1315,7 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
     });
   }
 
-  RoutineTableCompanion copyWith(
+  RoutinesCompanion copyWith(
       {Value<String>? id,
       Value<String>? title,
       Value<String>? kind,
@@ -1638,7 +1333,7 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
       Value<int?>? endMinute,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
-    return RoutineTableCompanion(
+    return RoutinesCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
       kind: kind ?? this.kind,
@@ -1718,7 +1413,7 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
 
   @override
   String toString() {
-    return (StringBuffer('RoutineTableCompanion(')
+    return (StringBuffer('RoutinesCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('kind: $kind, ')
@@ -1741,836 +1436,17 @@ class RoutineTableCompanion extends UpdateCompanion<RoutineTableData> {
   }
 }
 
-abstract class _$AppDatabase extends GeneratedDatabase {
-  _$AppDatabase(QueryExecutor e) : super(e);
-  $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $CategoryTableTable categoryTable = $CategoryTableTable(this);
-  late final $TaskTableTable taskTable = $TaskTableTable(this);
-  late final $RoutineTableTable routineTable = $RoutineTableTable(this);
+class DatabaseAtV3 extends GeneratedDatabase {
+  DatabaseAtV3(QueryExecutor e) : super(e);
+  late final Categories categories = Categories(this);
+  late final Tasks tasks = Tasks(this);
+  late final Routines routines = Routines(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [categoryTable, taskTable, routineTable];
-}
-
-typedef $$CategoryTableTableCreateCompanionBuilder = CategoryTableCompanion
-    Function({
-  required String id,
-  required String name,
-  required int color,
-  Value<int> sortOrder,
-  Value<int> rowid,
-});
-typedef $$CategoryTableTableUpdateCompanionBuilder = CategoryTableCompanion
-    Function({
-  Value<String> id,
-  Value<String> name,
-  Value<int> color,
-  Value<int> sortOrder,
-  Value<int> rowid,
-});
-
-class $$CategoryTableTableFilterComposer
-    extends Composer<_$AppDatabase, $CategoryTableTable> {
-  $$CategoryTableTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get name => $composableBuilder(
-      column: $table.name, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get color => $composableBuilder(
-      column: $table.color, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get sortOrder => $composableBuilder(
-      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
-}
-
-class $$CategoryTableTableOrderingComposer
-    extends Composer<_$AppDatabase, $CategoryTableTable> {
-  $$CategoryTableTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get name => $composableBuilder(
-      column: $table.name, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get color => $composableBuilder(
-      column: $table.color, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get sortOrder => $composableBuilder(
-      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
-}
-
-class $$CategoryTableTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CategoryTableTable> {
-  $$CategoryTableTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<int> get color =>
-      $composableBuilder(column: $table.color, builder: (column) => column);
-
-  GeneratedColumn<int> get sortOrder =>
-      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
-}
-
-class $$CategoryTableTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $CategoryTableTable,
-    CategoryTableData,
-    $$CategoryTableTableFilterComposer,
-    $$CategoryTableTableOrderingComposer,
-    $$CategoryTableTableAnnotationComposer,
-    $$CategoryTableTableCreateCompanionBuilder,
-    $$CategoryTableTableUpdateCompanionBuilder,
-    (
-      CategoryTableData,
-      BaseReferences<_$AppDatabase, $CategoryTableTable, CategoryTableData>
-    ),
-    CategoryTableData,
-    PrefetchHooks Function()> {
-  $$CategoryTableTableTableManager(_$AppDatabase db, $CategoryTableTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$CategoryTableTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$CategoryTableTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$CategoryTableTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<int> color = const Value.absent(),
-            Value<int> sortOrder = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              CategoryTableCompanion(
-            id: id,
-            name: name,
-            color: color,
-            sortOrder: sortOrder,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            required String name,
-            required int color,
-            Value<int> sortOrder = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              CategoryTableCompanion.insert(
-            id: id,
-            name: name,
-            color: color,
-            sortOrder: sortOrder,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$CategoryTableTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $CategoryTableTable,
-    CategoryTableData,
-    $$CategoryTableTableFilterComposer,
-    $$CategoryTableTableOrderingComposer,
-    $$CategoryTableTableAnnotationComposer,
-    $$CategoryTableTableCreateCompanionBuilder,
-    $$CategoryTableTableUpdateCompanionBuilder,
-    (
-      CategoryTableData,
-      BaseReferences<_$AppDatabase, $CategoryTableTable, CategoryTableData>
-    ),
-    CategoryTableData,
-    PrefetchHooks Function()>;
-typedef $$TaskTableTableCreateCompanionBuilder = TaskTableCompanion Function({
-  required String id,
-  required String title,
-  Value<TaskKind> kind,
-  Value<DateTime> targetDate,
-  Value<String?> categoryId,
-  Value<String?> routineId,
-  Value<bool> isCompleted,
-  Value<bool> hasTime,
-  Value<DateTime?> startDateTime,
-  Value<DateTime?> endDateTime,
-  Value<bool> isAllDay,
-  Value<bool> isRecurring,
-  Value<String?> recurrenceRule,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-typedef $$TaskTableTableUpdateCompanionBuilder = TaskTableCompanion Function({
-  Value<String> id,
-  Value<String> title,
-  Value<TaskKind> kind,
-  Value<DateTime> targetDate,
-  Value<String?> categoryId,
-  Value<String?> routineId,
-  Value<bool> isCompleted,
-  Value<bool> hasTime,
-  Value<DateTime?> startDateTime,
-  Value<DateTime?> endDateTime,
-  Value<bool> isAllDay,
-  Value<bool> isRecurring,
-  Value<String?> recurrenceRule,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-
-class $$TaskTableTableFilterComposer
-    extends Composer<_$AppDatabase, $TaskTableTable> {
-  $$TaskTableTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get title => $composableBuilder(
-      column: $table.title, builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<TaskKind, TaskKind, String> get kind =>
-      $composableBuilder(
-          column: $table.kind,
-          builder: (column) => ColumnWithTypeConverterFilters(column));
-
-  ColumnFilters<DateTime> get targetDate => $composableBuilder(
-      column: $table.targetDate, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get routineId => $composableBuilder(
-      column: $table.routineId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isCompleted => $composableBuilder(
-      column: $table.isCompleted, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get hasTime => $composableBuilder(
-      column: $table.hasTime, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get startDateTime => $composableBuilder(
-      column: $table.startDateTime, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get endDateTime => $composableBuilder(
-      column: $table.endDateTime, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isAllDay => $composableBuilder(
-      column: $table.isAllDay, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isRecurring => $composableBuilder(
-      column: $table.isRecurring, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get recurrenceRule => $composableBuilder(
-      column: $table.recurrenceRule,
-      builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-}
-
-class $$TaskTableTableOrderingComposer
-    extends Composer<_$AppDatabase, $TaskTableTable> {
-  $$TaskTableTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get title => $composableBuilder(
-      column: $table.title, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kind => $composableBuilder(
-      column: $table.kind, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get targetDate => $composableBuilder(
-      column: $table.targetDate, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get routineId => $composableBuilder(
-      column: $table.routineId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isCompleted => $composableBuilder(
-      column: $table.isCompleted, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get hasTime => $composableBuilder(
-      column: $table.hasTime, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get startDateTime => $composableBuilder(
-      column: $table.startDateTime,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get endDateTime => $composableBuilder(
-      column: $table.endDateTime, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isAllDay => $composableBuilder(
-      column: $table.isAllDay, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isRecurring => $composableBuilder(
-      column: $table.isRecurring, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get recurrenceRule => $composableBuilder(
-      column: $table.recurrenceRule,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-}
-
-class $$TaskTableTableAnnotationComposer
-    extends Composer<_$AppDatabase, $TaskTableTable> {
-  $$TaskTableTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get title =>
-      $composableBuilder(column: $table.title, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<TaskKind, String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get targetDate => $composableBuilder(
-      column: $table.targetDate, builder: (column) => column);
-
-  GeneratedColumn<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => column);
-
-  GeneratedColumn<String> get routineId =>
-      $composableBuilder(column: $table.routineId, builder: (column) => column);
-
-  GeneratedColumn<bool> get isCompleted => $composableBuilder(
-      column: $table.isCompleted, builder: (column) => column);
-
-  GeneratedColumn<bool> get hasTime =>
-      $composableBuilder(column: $table.hasTime, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get startDateTime => $composableBuilder(
-      column: $table.startDateTime, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get endDateTime => $composableBuilder(
-      column: $table.endDateTime, builder: (column) => column);
-
-  GeneratedColumn<bool> get isAllDay =>
-      $composableBuilder(column: $table.isAllDay, builder: (column) => column);
-
-  GeneratedColumn<bool> get isRecurring => $composableBuilder(
-      column: $table.isRecurring, builder: (column) => column);
-
-  GeneratedColumn<String> get recurrenceRule => $composableBuilder(
-      column: $table.recurrenceRule, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$TaskTableTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $TaskTableTable,
-    TaskTableData,
-    $$TaskTableTableFilterComposer,
-    $$TaskTableTableOrderingComposer,
-    $$TaskTableTableAnnotationComposer,
-    $$TaskTableTableCreateCompanionBuilder,
-    $$TaskTableTableUpdateCompanionBuilder,
-    (
-      TaskTableData,
-      BaseReferences<_$AppDatabase, $TaskTableTable, TaskTableData>
-    ),
-    TaskTableData,
-    PrefetchHooks Function()> {
-  $$TaskTableTableTableManager(_$AppDatabase db, $TaskTableTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$TaskTableTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$TaskTableTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$TaskTableTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> title = const Value.absent(),
-            Value<TaskKind> kind = const Value.absent(),
-            Value<DateTime> targetDate = const Value.absent(),
-            Value<String?> categoryId = const Value.absent(),
-            Value<String?> routineId = const Value.absent(),
-            Value<bool> isCompleted = const Value.absent(),
-            Value<bool> hasTime = const Value.absent(),
-            Value<DateTime?> startDateTime = const Value.absent(),
-            Value<DateTime?> endDateTime = const Value.absent(),
-            Value<bool> isAllDay = const Value.absent(),
-            Value<bool> isRecurring = const Value.absent(),
-            Value<String?> recurrenceRule = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              TaskTableCompanion(
-            id: id,
-            title: title,
-            kind: kind,
-            targetDate: targetDate,
-            categoryId: categoryId,
-            routineId: routineId,
-            isCompleted: isCompleted,
-            hasTime: hasTime,
-            startDateTime: startDateTime,
-            endDateTime: endDateTime,
-            isAllDay: isAllDay,
-            isRecurring: isRecurring,
-            recurrenceRule: recurrenceRule,
-            createdAt: createdAt,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            required String title,
-            Value<TaskKind> kind = const Value.absent(),
-            Value<DateTime> targetDate = const Value.absent(),
-            Value<String?> categoryId = const Value.absent(),
-            Value<String?> routineId = const Value.absent(),
-            Value<bool> isCompleted = const Value.absent(),
-            Value<bool> hasTime = const Value.absent(),
-            Value<DateTime?> startDateTime = const Value.absent(),
-            Value<DateTime?> endDateTime = const Value.absent(),
-            Value<bool> isAllDay = const Value.absent(),
-            Value<bool> isRecurring = const Value.absent(),
-            Value<String?> recurrenceRule = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              TaskTableCompanion.insert(
-            id: id,
-            title: title,
-            kind: kind,
-            targetDate: targetDate,
-            categoryId: categoryId,
-            routineId: routineId,
-            isCompleted: isCompleted,
-            hasTime: hasTime,
-            startDateTime: startDateTime,
-            endDateTime: endDateTime,
-            isAllDay: isAllDay,
-            isRecurring: isRecurring,
-            recurrenceRule: recurrenceRule,
-            createdAt: createdAt,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$TaskTableTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $TaskTableTable,
-    TaskTableData,
-    $$TaskTableTableFilterComposer,
-    $$TaskTableTableOrderingComposer,
-    $$TaskTableTableAnnotationComposer,
-    $$TaskTableTableCreateCompanionBuilder,
-    $$TaskTableTableUpdateCompanionBuilder,
-    (
-      TaskTableData,
-      BaseReferences<_$AppDatabase, $TaskTableTable, TaskTableData>
-    ),
-    TaskTableData,
-    PrefetchHooks Function()>;
-typedef $$RoutineTableTableCreateCompanionBuilder = RoutineTableCompanion
-    Function({
-  required String id,
-  required String title,
-  required String kind,
-  Value<String?> categoryId,
-  required DateTime startDate,
-  Value<DateTime?> endDate,
-  required String frequency,
-  required String creationMode,
-  Value<int> interval,
-  Value<String?> customUnit,
-  Value<String> weekdays,
-  Value<bool> hasTime,
-  Value<bool> isAllDay,
-  Value<int?> startMinute,
-  Value<int?> endMinute,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-typedef $$RoutineTableTableUpdateCompanionBuilder = RoutineTableCompanion
-    Function({
-  Value<String> id,
-  Value<String> title,
-  Value<String> kind,
-  Value<String?> categoryId,
-  Value<DateTime> startDate,
-  Value<DateTime?> endDate,
-  Value<String> frequency,
-  Value<String> creationMode,
-  Value<int> interval,
-  Value<String?> customUnit,
-  Value<String> weekdays,
-  Value<bool> hasTime,
-  Value<bool> isAllDay,
-  Value<int?> startMinute,
-  Value<int?> endMinute,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-
-class $$RoutineTableTableFilterComposer
-    extends Composer<_$AppDatabase, $RoutineTableTable> {
-  $$RoutineTableTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get title => $composableBuilder(
-      column: $table.title, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kind => $composableBuilder(
-      column: $table.kind, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get startDate => $composableBuilder(
-      column: $table.startDate, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get endDate => $composableBuilder(
-      column: $table.endDate, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get frequency => $composableBuilder(
-      column: $table.frequency, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get creationMode => $composableBuilder(
-      column: $table.creationMode, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get interval => $composableBuilder(
-      column: $table.interval, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get customUnit => $composableBuilder(
-      column: $table.customUnit, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get weekdays => $composableBuilder(
-      column: $table.weekdays, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get hasTime => $composableBuilder(
-      column: $table.hasTime, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<bool> get isAllDay => $composableBuilder(
-      column: $table.isAllDay, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get startMinute => $composableBuilder(
-      column: $table.startMinute, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get endMinute => $composableBuilder(
-      column: $table.endMinute, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnFilters(column));
-}
-
-class $$RoutineTableTableOrderingComposer
-    extends Composer<_$AppDatabase, $RoutineTableTable> {
-  $$RoutineTableTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-      column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get title => $composableBuilder(
-      column: $table.title, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kind => $composableBuilder(
-      column: $table.kind, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get startDate => $composableBuilder(
-      column: $table.startDate, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get endDate => $composableBuilder(
-      column: $table.endDate, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get frequency => $composableBuilder(
-      column: $table.frequency, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get creationMode => $composableBuilder(
-      column: $table.creationMode,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get interval => $composableBuilder(
-      column: $table.interval, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get customUnit => $composableBuilder(
-      column: $table.customUnit, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get weekdays => $composableBuilder(
-      column: $table.weekdays, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get hasTime => $composableBuilder(
-      column: $table.hasTime, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<bool> get isAllDay => $composableBuilder(
-      column: $table.isAllDay, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get startMinute => $composableBuilder(
-      column: $table.startMinute, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get endMinute => $composableBuilder(
-      column: $table.endMinute, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-}
-
-class $$RoutineTableTableAnnotationComposer
-    extends Composer<_$AppDatabase, $RoutineTableTable> {
-  $$RoutineTableTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get title =>
-      $composableBuilder(column: $table.title, builder: (column) => column);
-
-  GeneratedColumn<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
-
-  GeneratedColumn<String> get categoryId => $composableBuilder(
-      column: $table.categoryId, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get startDate =>
-      $composableBuilder(column: $table.startDate, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get endDate =>
-      $composableBuilder(column: $table.endDate, builder: (column) => column);
-
-  GeneratedColumn<String> get frequency =>
-      $composableBuilder(column: $table.frequency, builder: (column) => column);
-
-  GeneratedColumn<String> get creationMode => $composableBuilder(
-      column: $table.creationMode, builder: (column) => column);
-
-  GeneratedColumn<int> get interval =>
-      $composableBuilder(column: $table.interval, builder: (column) => column);
-
-  GeneratedColumn<String> get customUnit => $composableBuilder(
-      column: $table.customUnit, builder: (column) => column);
-
-  GeneratedColumn<String> get weekdays =>
-      $composableBuilder(column: $table.weekdays, builder: (column) => column);
-
-  GeneratedColumn<bool> get hasTime =>
-      $composableBuilder(column: $table.hasTime, builder: (column) => column);
-
-  GeneratedColumn<bool> get isAllDay =>
-      $composableBuilder(column: $table.isAllDay, builder: (column) => column);
-
-  GeneratedColumn<int> get startMinute => $composableBuilder(
-      column: $table.startMinute, builder: (column) => column);
-
-  GeneratedColumn<int> get endMinute =>
-      $composableBuilder(column: $table.endMinute, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$RoutineTableTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $RoutineTableTable,
-    RoutineTableData,
-    $$RoutineTableTableFilterComposer,
-    $$RoutineTableTableOrderingComposer,
-    $$RoutineTableTableAnnotationComposer,
-    $$RoutineTableTableCreateCompanionBuilder,
-    $$RoutineTableTableUpdateCompanionBuilder,
-    (
-      RoutineTableData,
-      BaseReferences<_$AppDatabase, $RoutineTableTable, RoutineTableData>
-    ),
-    RoutineTableData,
-    PrefetchHooks Function()> {
-  $$RoutineTableTableTableManager(_$AppDatabase db, $RoutineTableTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$RoutineTableTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$RoutineTableTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$RoutineTableTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> id = const Value.absent(),
-            Value<String> title = const Value.absent(),
-            Value<String> kind = const Value.absent(),
-            Value<String?> categoryId = const Value.absent(),
-            Value<DateTime> startDate = const Value.absent(),
-            Value<DateTime?> endDate = const Value.absent(),
-            Value<String> frequency = const Value.absent(),
-            Value<String> creationMode = const Value.absent(),
-            Value<int> interval = const Value.absent(),
-            Value<String?> customUnit = const Value.absent(),
-            Value<String> weekdays = const Value.absent(),
-            Value<bool> hasTime = const Value.absent(),
-            Value<bool> isAllDay = const Value.absent(),
-            Value<int?> startMinute = const Value.absent(),
-            Value<int?> endMinute = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              RoutineTableCompanion(
-            id: id,
-            title: title,
-            kind: kind,
-            categoryId: categoryId,
-            startDate: startDate,
-            endDate: endDate,
-            frequency: frequency,
-            creationMode: creationMode,
-            interval: interval,
-            customUnit: customUnit,
-            weekdays: weekdays,
-            hasTime: hasTime,
-            isAllDay: isAllDay,
-            startMinute: startMinute,
-            endMinute: endMinute,
-            createdAt: createdAt,
-            rowid: rowid,
-          ),
-          createCompanionCallback: ({
-            required String id,
-            required String title,
-            required String kind,
-            Value<String?> categoryId = const Value.absent(),
-            required DateTime startDate,
-            Value<DateTime?> endDate = const Value.absent(),
-            required String frequency,
-            required String creationMode,
-            Value<int> interval = const Value.absent(),
-            Value<String?> customUnit = const Value.absent(),
-            Value<String> weekdays = const Value.absent(),
-            Value<bool> hasTime = const Value.absent(),
-            Value<bool> isAllDay = const Value.absent(),
-            Value<int?> startMinute = const Value.absent(),
-            Value<int?> endMinute = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) =>
-              RoutineTableCompanion.insert(
-            id: id,
-            title: title,
-            kind: kind,
-            categoryId: categoryId,
-            startDate: startDate,
-            endDate: endDate,
-            frequency: frequency,
-            creationMode: creationMode,
-            interval: interval,
-            customUnit: customUnit,
-            weekdays: weekdays,
-            hasTime: hasTime,
-            isAllDay: isAllDay,
-            startMinute: startMinute,
-            endMinute: endMinute,
-            createdAt: createdAt,
-            rowid: rowid,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$RoutineTableTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $RoutineTableTable,
-    RoutineTableData,
-    $$RoutineTableTableFilterComposer,
-    $$RoutineTableTableOrderingComposer,
-    $$RoutineTableTableAnnotationComposer,
-    $$RoutineTableTableCreateCompanionBuilder,
-    $$RoutineTableTableUpdateCompanionBuilder,
-    (
-      RoutineTableData,
-      BaseReferences<_$AppDatabase, $RoutineTableTable, RoutineTableData>
-    ),
-    RoutineTableData,
-    PrefetchHooks Function()>;
-
-class $AppDatabaseManager {
-  final _$AppDatabase _db;
-  $AppDatabaseManager(this._db);
-  $$CategoryTableTableTableManager get categoryTable =>
-      $$CategoryTableTableTableManager(_db, _db.categoryTable);
-  $$TaskTableTableTableManager get taskTable =>
-      $$TaskTableTableTableManager(_db, _db.taskTable);
-  $$RoutineTableTableTableManager get routineTable =>
-      $$RoutineTableTableTableManager(_db, _db.routineTable);
+      [categories, tasks, routines];
+  @override
+  int get schemaVersion => 3;
 }
