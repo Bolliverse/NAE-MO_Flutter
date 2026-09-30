@@ -48,6 +48,9 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
       await _db.transaction(() async {
         await (_db.update(_db.taskTable)..where((t) => t.categoryId.equals(id)))
             .write(const TaskTableCompanion(categoryId: Value(null)));
+        await (_db.update(_db.routineTable)
+              ..where((t) => t.categoryId.equals(id)))
+            .write(const RoutineTableCompanion(categoryId: Value(null)));
         await (_db.delete(_db.categoryTable)..where((t) => t.id.equals(id)))
             .go();
       });
