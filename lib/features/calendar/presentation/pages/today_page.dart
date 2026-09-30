@@ -205,6 +205,7 @@ class _TodayContent extends ConsumerWidget {
                   initialTask: entry.task,
                   onClose: () => Navigator.of(editContext).pop(false),
                   onSaved: () => Navigator.of(editContext).pop(true),
+                  onDeleted: () => Navigator.of(editContext).pop(true),
                 )),
       );
       if (context.mounted && saved == true) {

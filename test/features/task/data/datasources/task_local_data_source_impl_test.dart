@@ -17,6 +17,20 @@ void main() {
 
   tearDown(() => database.close());
 
+  test('delete removes only the chosen task and leaves other rows intact',
+      () async {
+    final date = DateTime(2026, 8, 3);
+    await _insert(dataSource, id: 'delete', targetDate: date);
+    await _insert(dataSource, id: 'keep', targetDate: date);
+    final kept = await dataSource.getById('keep');
+
+    await dataSource.delete('delete');
+
+    final remaining = await dataSource.getByDate(date);
+    expect(remaining.map((item) => item.id), ['keep']);
+    expect(await dataSource.getById('keep'), kept);
+  });
+
   test(
       'explicitly clears category while preserving completion, identity and creation',
       () async {

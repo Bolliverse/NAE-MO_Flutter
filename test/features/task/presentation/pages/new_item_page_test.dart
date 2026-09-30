@@ -14,6 +14,130 @@ import 'package:nae_mo/features/task/presentation/states/new_item_schedule_draft
 import 'package:nae_mo/features/task/presentation/widgets/new_item_category_input.dart';
 
 void main() {
+  testWidgets('create mode has no delete action', (tester) async {
+    await _pump(tester);
+    expect(find.byKey(const Key('itemDeleteButton')), findsNothing);
+  });
+
+  for (final kind in TaskKind.values) {
+    testWidgets(
+        '${kind.name} delete confirmation can be cancelled and confirmed',
+        (tester) async {
+      final task = _editableItem(kind);
+      final deletedIds = <String>[];
+      var completed = 0;
+      await _pump(tester,
+          initialTask: task,
+          onDeleted: () => completed++,
+          deleter: (id) async {
+            deletedIds.add(id);
+            return (data: null, failure: null);
+          });
+      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const Key('newItemTitleField')), '저장하지 않은 제목');
+      await tester.ensureVisible(find.byKey(const Key('itemDeleteButton')));
+      await tester.tap(find.byKey(const Key('itemDeleteButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(kind == TaskKind.event ? '일정을 삭제할까요?' : 'Todo를 삭제할까요?'),
+          findsOneWidget);
+      expect(find.textContaining('복구할 수 없습니다.'), findsOneWidget);
+      expect(deletedIds, isEmpty);
+
+      await tester.tap(find.byKey(const Key('itemDeleteCancelButton')));
+      await tester.pumpAndSettle();
+      expect(deletedIds, isEmpty);
+      expect(completed, 0);
+      expect(
+          tester
+              .widget<TextField>(find.byKey(const Key('newItemTitleField')))
+              .controller!
+              .text,
+          '저장하지 않은 제목');
+
+      await tester.tap(find.byKey(const Key('itemDeleteButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('itemDeleteConfirmButton')));
+      await tester.pump();
+      expect(deletedIds, [task.id]);
+      expect(completed, 1);
+    });
+  }
+
+  testWidgets(
+      'pending delete blocks duplicate actions and back; failure keeps input for retry',
+      (tester) async {
+    final pending = Completer<result.Result<void>>();
+    var calls = 0;
+    var closed = 0;
+    var completed = 0;
+    await _pump(tester,
+        initialTask: _savedTodo,
+        onClose: () => closed++,
+        onDeleted: () => completed++,
+        deleter: (_) async {
+          calls++;
+          if (calls == 1) return pending.future;
+          return (data: null, failure: null);
+        });
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('newItemTitleField')), '입력 유지');
+    await tester.ensureVisible(find.byKey(const Key('itemDeleteButton')));
+    await tester.tap(find.byKey(const Key('itemDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('itemDeleteConfirmButton')));
+    await tester.pump();
+    expect(calls, 1);
+    expect(
+        tester
+            .widget<TextButton>(find.byKey(const Key('itemDeleteButton')))
+            .onPressed,
+        isNull);
+    expect(_saveButton(tester).onPressed, isNull);
+    expect(
+        tester
+            .widget<IconButton>(find.byKey(const Key('newItemCloseButton')))
+            .onPressed,
+        isNull);
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(closed, 0);
+    expect(calls, 1);
+
+    pending.complete(result.fail(const CacheFailure('write failed')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('itemDeleteError')), findsOneWidget);
+    expect(completed, 0);
+    expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('newItemTitleField')))
+            .controller!
+            .text,
+        '입력 유지');
+
+    await tester.tap(find.byKey(const Key('itemDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('itemDeleteConfirmButton')));
+    await tester.pump();
+    expect(calls, 2);
+    expect(completed, 1);
+  });
+
+  testWidgets('unexpected delete exception shows the same retryable error',
+      (tester) async {
+    await _pump(tester,
+        initialTask: _savedTodo,
+        deleter: (_) async => throw StateError('database error'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('itemDeleteButton')));
+    await tester.tap(find.byKey(const Key('itemDeleteButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('itemDeleteConfirmButton')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('itemDeleteError')), findsOneWidget);
+    expect(find.byKey(const Key('itemDeleteButton')), findsOneWidget);
+  });
   testWidgets('changing edit date moves both timestamps to the chosen date',
       (tester) async {
     final task = Task(
@@ -698,6 +822,8 @@ Future<void> _pump(
   NewItemSaver? saver,
   Task? initialTask,
   ItemUpdater? updater,
+  ItemDeleter? deleter,
+  VoidCallback? onDeleted,
 }) {
   return tester.pumpWidget(
     ProviderScope(
@@ -712,6 +838,8 @@ Future<void> _pump(
           saver: saver,
           initialTask: initialTask,
           updater: updater,
+          deleter: deleter,
+          onDeleted: onDeleted,
         ),
       ),
     ),
@@ -763,3 +891,15 @@ final _savedTodo = Task(
   isRecurring: false,
   createdAt: DateTime(2026, 8, 3, 12),
 );
+
+Task _editableItem(TaskKind kind) => Task(
+      id: '${kind.name}-existing',
+      title: kind == TaskKind.event ? '팀 회의' : '회의록 작성',
+      kind: kind,
+      targetDate: DateTime(2026, 8, 3),
+      isCompleted: false,
+      hasTime: false,
+      isAllDay: kind == TaskKind.event,
+      isRecurring: false,
+      createdAt: DateTime(2026, 8, 3, 12),
+    );
