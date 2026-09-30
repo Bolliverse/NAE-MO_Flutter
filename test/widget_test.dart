@@ -226,7 +226,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_routerOf(tester).routeInformationProvider.value.uri.path,
         AppRoutes.month);
-    expect(find.textContaining('Month View'), findsOneWidget);
+    expect(find.byKey(const Key('monthGrid')), findsOneWidget);
     expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         2);
