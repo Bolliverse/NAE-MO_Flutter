@@ -6,6 +6,7 @@ class Task {
   final TaskKind kind;
   final DateTime targetDate;
   final String? categoryId;
+  final String? routineId;
   final bool isCompleted;
   final bool hasTime;
   final DateTime? startDateTime;
@@ -21,6 +22,7 @@ class Task {
     required this.kind,
     required this.targetDate,
     this.categoryId,
+    this.routineId,
     required this.isCompleted,
     required this.hasTime,
     this.startDateTime,

@@ -9,7 +9,9 @@ import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_mode
 import 'package:nae_mo/features/calendar/presentation/widgets/daily_calendar_pane.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/daily_split_scaffold.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/daily_todo_pane.dart';
+import 'package:nae_mo/features/calendar/presentation/widgets/manual_routine_candidates.dart';
 import 'package:nae_mo/features/calendar/presentation/widgets/today_date_header.dart';
+import 'package:nae_mo/features/task/domain/entities/task.dart';
 
 class TodayPage extends ConsumerWidget {
   const TodayPage({super.key});
@@ -178,6 +180,26 @@ class _TodayContent extends ConsumerWidget {
       ...todoTimeline,
       ...completedTimeline,
     ];
+    final eventCandidates = state.manualRoutineCandidates
+        .where((candidate) => candidate.definition.kind == TaskKind.event)
+        .toList(growable: false);
+    final todoCandidates = state.manualRoutineCandidates
+        .where((candidate) => candidate.definition.kind == TaskKind.todo)
+        .toList(growable: false);
+
+    Future<void> confirmRoutine(String routineId) async {
+      final initiatingDate = overview.date;
+      final failure = await ref
+          .read(todayViewModelProvider.notifier)
+          .confirmRoutine(routineId);
+      if (failure == null || !context.mounted) return;
+      if (!_isSameLocalDate(initiatingDate, ref.read(selectedDateProvider))) {
+        return;
+      }
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(failure.message)));
+    }
 
     Future<void> toggleTodo(String taskId) async {
       final initiatingDate = overview.date;
@@ -221,20 +243,32 @@ class _TodayContent extends ConsumerWidget {
           header: dateHeader,
           pinnedHeight: 220,
           initialTimelineOffset: 8 * dailyCalendarHourExtent - 24,
-          calendarPinnedBuilder: (context, layout) => DailyCalendarPinned(
-            key: const Key('dailyCalendarPinned'),
-            entries: overview.allDayEvents,
-            onOpen: openItem,
+          calendarPinnedBuilder: (context, layout) => ManualRoutineCandidates(
+            candidates: eventCandidates,
+            pendingIds: state.pendingRoutineIds,
             isCompact: layout.isCompact,
+            onConfirm: confirmRoutine,
+            child: DailyCalendarPinned(
+              key: const Key('dailyCalendarPinned'),
+              entries: overview.allDayEvents,
+              onOpen: openItem,
+              isCompact: layout.isCompact,
+            ),
           ),
-          todoPinnedBuilder: (context, layout) => DailyTodoPinned(
-            key: const Key('dailyTodoPinned'),
-            entries: todoPinned,
-            onOpen: openItem,
-            selectedDate: overview.date,
+          todoPinnedBuilder: (context, layout) => ManualRoutineCandidates(
+            candidates: todoCandidates,
+            pendingIds: state.pendingRoutineIds,
             isCompact: layout.isCompact,
-            pendingTodoIds: state.pendingTodoIds,
-            onToggleTodo: toggleTodo,
+            onConfirm: confirmRoutine,
+            child: DailyTodoPinned(
+              key: const Key('dailyTodoPinned'),
+              entries: todoPinned,
+              onOpen: openItem,
+              selectedDate: overview.date,
+              isCompact: layout.isCompact,
+              pendingTodoIds: state.pendingTodoIds,
+              onToggleTodo: toggleTodo,
+            ),
           ),
           calendarTimelineBuilder: (context, layout) => DailyCalendarTimeline(
             key: const Key('dailyCalendarTimeline'),

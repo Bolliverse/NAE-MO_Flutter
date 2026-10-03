@@ -104,20 +104,34 @@ class TaskLocalDataSourceImpl implements TaskLocalDataSource {
   @override
   Future<TaskTableData> insert(String id, CreateTaskParams params) async {
     try {
-      await _db.into(_db.taskTable).insert(
-            TaskTableCompanion(
-              id: Value(id),
-              title: Value(params.title),
-              kind: Value(params.kind),
-              targetDate: Value(_dateOnly(params.targetDate)),
-              categoryId: Value(params.categoryId),
-              hasTime: Value(params.hasTime),
-              startDateTime: Value(params.startDateTime),
-              endDateTime: Value(params.endDateTime),
-              isAllDay: Value(params.isAllDay),
-            ),
-          );
-      return await getById(id);
+      // Keep the duplicate check and insert atomic across rapid confirmations.
+      // https://drift.simonbinder.eu/dart_api/transactions/
+      return await _db.transaction(() async {
+        final routineId = params.routineId;
+        if (routineId != null) {
+          final existing = await (_db.select(_db.taskTable)
+                ..where((t) =>
+                    t.routineId.equals(routineId) &
+                    t.targetDate.equals(_dateOnly(params.targetDate))))
+              .getSingleOrNull();
+          if (existing != null) return existing;
+        }
+        await _db.into(_db.taskTable).insert(
+              TaskTableCompanion(
+                id: Value(id),
+                title: Value(params.title),
+                kind: Value(params.kind),
+                targetDate: Value(_dateOnly(params.targetDate)),
+                categoryId: Value(params.categoryId),
+                routineId: Value(params.routineId),
+                hasTime: Value(params.hasTime),
+                startDateTime: Value(params.startDateTime),
+                endDateTime: Value(params.endDateTime),
+                isAllDay: Value(params.isAllDay),
+              ),
+            );
+        return getById(id);
+      });
     } catch (e) {
       throw CacheException('태스크를 생성하는 데 실패했습니다: $e');
     }

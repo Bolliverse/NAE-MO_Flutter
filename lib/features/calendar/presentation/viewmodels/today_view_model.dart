@@ -4,6 +4,7 @@ import 'package:nae_mo/core/utils/result.dart';
 import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
 import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_case.dart';
 import 'package:nae_mo/features/calendar/presentation/states/today_state.dart';
+import 'package:nae_mo/features/routine/domain/usecases/manual_routine_candidates.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/usecases/toggle_complete_use_case.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -13,6 +14,7 @@ part 'today_view_model.g.dart';
 @riverpod
 class TodayViewModel extends _$TodayViewModel {
   final Set<String> _pendingToggleIds = {};
+  final Set<String> _pendingRoutineIds = {};
   int _viewRevision = 0;
 
   @override
@@ -22,20 +24,56 @@ class TodayViewModel extends _$TodayViewModel {
     final result = await ref.read(getTodayOverviewUseCaseProvider)(
       selectedDate,
     );
+    final candidatesResult = await ref.read(getManualRoutineCandidatesProvider)(
+      selectedDate,
+    );
+    if (candidatesResult.failure case final failure?) throw failure;
 
     return result.fold(
       onSuccess: (overview) => TodayState(
         overview: overview,
+        manualRoutineCandidates: candidatesResult.data!,
         pendingTodoIds: {
           for (final taskId in _pendingToggleIds)
             if (_findTodo(overview, taskId) != null) taskId,
         },
+        pendingRoutineIds: _pendingRoutineIds,
       ),
       onFailure: (failure) => throw failure,
     );
   }
 
   void retry() => ref.invalidateSelf();
+
+  Future<Failure?> confirmRoutine(String routineId) async {
+    final current = state.valueOrNull;
+    if (current == null ||
+        _pendingRoutineIds.contains(routineId) ||
+        !current.manualRoutineCandidates
+            .any((item) => item.routineId == routineId)) {
+      return null;
+    }
+    final date = current.overview.date;
+    _pendingRoutineIds.add(routineId);
+    state = AsyncData(current.copyWith(pendingRoutineIds: _pendingRoutineIds));
+    final result = await ref.read(confirmManualRoutineCandidateProvider)(
+      routineId,
+      date,
+    );
+    _pendingRoutineIds.remove(routineId);
+    if (result.failure case final failure?) {
+      final latest = state.valueOrNull;
+      if (latest != null) {
+        state =
+            AsyncData(latest.copyWith(pendingRoutineIds: _pendingRoutineIds));
+      }
+      return failure;
+    }
+    // Riverpod rebuilds the day after this write, including its candidates.
+    // https://docs-v2.riverpod.dev/docs/essentials/auto_dispose
+    ref.invalidateSelf();
+    return null;
+  }
 
   void toggleOverdueSection() {
     final current = state.valueOrNull;
@@ -205,6 +243,7 @@ Task _copyWithInverseCompletion(Task task) {
     kind: task.kind,
     targetDate: task.targetDate,
     categoryId: task.categoryId,
+    routineId: task.routineId,
     isCompleted: !task.isCompleted,
     hasTime: task.hasTime,
     startDateTime: task.startDateTime,

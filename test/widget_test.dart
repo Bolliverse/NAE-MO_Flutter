@@ -742,8 +742,9 @@ Future<void> _pumpApp(
         categoryRepositoryProvider.overrideWithValue(
           categoryRepository ?? _MemoryCategoryRepository(),
         ),
-        if (routineRepository != null)
-          routineRepositoryProvider.overrideWithValue(routineRepository),
+        routineRepositoryProvider.overrideWithValue(
+          routineRepository ?? _MemoryRoutineRepository(),
+        ),
         getTodayOverviewUseCaseProvider.overrideWithValue(
           resolvedOverviewUseCase,
         ),

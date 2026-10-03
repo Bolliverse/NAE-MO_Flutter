@@ -6,6 +6,7 @@ class CreateTaskParams {
   final TaskKind kind;
   final DateTime targetDate;
   final String? categoryId;
+  final String? routineId;
   final bool hasTime;
   final DateTime? startDateTime;
   final DateTime? endDateTime;
@@ -16,6 +17,7 @@ class CreateTaskParams {
     required this.kind,
     required this.targetDate,
     this.categoryId,
+    this.routineId,
     this.hasTime = false,
     this.startDateTime,
     this.endDateTime,

@@ -10,6 +10,7 @@ class TaskMapper {
         kind: data.kind,
         targetDate: data.targetDate,
         categoryId: data.categoryId,
+        routineId: data.routineId,
         isCompleted: data.isCompleted,
         hasTime: data.hasTime,
         startDateTime: data.startDateTime,
