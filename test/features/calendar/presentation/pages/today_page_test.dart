@@ -13,6 +13,10 @@ import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_
 import 'package:nae_mo/features/calendar/presentation/pages/today_page.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
+import 'package:nae_mo/features/routine/domain/entities/routine_definition.dart';
+import 'package:nae_mo/features/routine/domain/entities/routine_rule.dart';
+import 'package:nae_mo/features/routine/domain/repositories/routine_repository.dart';
+import 'package:nae_mo/features/routine/domain/usecases/manual_routine_candidates.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/repositories/task_repository.dart';
 import 'package:nae_mo/features/task/domain/usecases/toggle_complete_use_case.dart';
@@ -23,6 +27,39 @@ void main() {
   setUpAll(() async {
     await initializeDateFormatting('ko', null);
     Intl.defaultLocale = 'ko';
+  });
+
+  testWidgets('manual event candidate is separate from scheduled entries',
+      (tester) async {
+    final harness = _PageHarness(
+      initialDate: initialDate,
+      loadResult: (date) async => success(_overview(date)),
+      candidates: [
+        ManualRoutineCandidate(
+          RoutineDefinition(
+            rule: RoutineRule(
+              id: 'morning-walk',
+              startDate: initialDate,
+              frequency: RoutineFrequency.daily,
+              creationMode: RoutineCreationMode.manual,
+            ),
+            title: '아침 산책',
+            kind: TaskKind.event,
+            isAllDay: true,
+          ),
+          initialDate,
+        ),
+      ],
+    );
+    await _pumpPage(tester, harness);
+    await tester.pumpAndSettle();
+
+    expect(find.text('수동으로 추가'), findsOneWidget);
+    expect(find.text('아침 산책'), findsOneWidget);
+    expect(
+        find.byKey(const Key('manualRoutineAdd-morning-walk')), findsOneWidget);
+    expect(find.byKey(const Key('dailyCalendarAllDay-morning-walk')),
+        findsNothing);
   });
 
   testWidgets('an unresolved reload keeps the selected date header interactive',
@@ -461,12 +498,16 @@ class _PageHarness {
   _PageHarness({
     required DateTime initialDate,
     required Future<Result<TodayOverview>> Function(DateTime date) loadResult,
+    List<ManualRoutineCandidate> candidates = const [],
   }) {
     loadUseCase = _FakeGetTodayOverviewUseCase(loadResult);
     toggleUseCase = _ControllableToggleCompleteUseCase();
     container = ProviderContainer(
       overrides: [
         getTodayOverviewUseCaseProvider.overrideWithValue(loadUseCase),
+        getManualRoutineCandidatesProvider.overrideWithValue(
+          _EmptyManualRoutineCandidates(candidates),
+        ),
         toggleCompleteUseCaseProvider.overrideWithValue(toggleUseCase),
       ],
     );
@@ -515,6 +556,20 @@ class _ControllableToggleCompleteUseCase extends ToggleCompleteUseCase {
 }
 
 class _UnusedTaskRepository extends Fake implements TaskRepository {}
+
+class _UnusedRoutineRepository extends Fake implements RoutineRepository {}
+
+class _EmptyManualRoutineCandidates extends GetManualRoutineCandidates {
+  _EmptyManualRoutineCandidates(this.candidates)
+      : super(_UnusedRoutineRepository(), _UnusedTaskRepository());
+
+  final List<ManualRoutineCandidate> candidates;
+
+  @override
+  Future<Result<List<ManualRoutineCandidate>>> call(
+          DateTime selectedDate) async =>
+      success(candidates);
+}
 
 class _UnusedCategoryRepository extends Fake implements CategoryRepository {}
 

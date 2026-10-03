@@ -12,6 +12,10 @@ import 'package:nae_mo/features/calendar/domain/entities/today_overview.dart';
 import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_case.dart';
 import 'package:nae_mo/features/category/domain/entities/category.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
+import 'package:nae_mo/features/routine/domain/entities/routine_definition.dart';
+import 'package:nae_mo/features/routine/domain/entities/routine_rule.dart';
+import 'package:nae_mo/features/routine/domain/repositories/routine_repository.dart';
+import 'package:nae_mo/features/routine/domain/usecases/manual_routine_candidates.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/repositories/task_repository.dart';
 import 'package:nae_mo/features/task/domain/usecases/params/create_task_params.dart';
@@ -38,6 +42,9 @@ Future<void> main() async {
         toggleCompleteUseCaseProvider.overrideWithValue(
           _FixtureToggleCompleteUseCase(),
         ),
+        getManualRoutineCandidatesProvider.overrideWithValue(
+          _FixtureManualRoutineCandidates(),
+        ),
       ],
       child: const App(),
     ),
@@ -47,6 +54,57 @@ Future<void> main() async {
 class _FixtureSelectedDate extends SelectedDate {
   @override
   DateTime build() => DateTime(2026, 8, 3);
+}
+
+class _FixtureManualRoutineCandidates extends GetManualRoutineCandidates {
+  _FixtureManualRoutineCandidates()
+      : super(_UnusedRoutineRepository(), _UnusedTaskRepository());
+
+  @override
+  Future<Result<List<ManualRoutineCandidate>>> call(
+      DateTime selectedDate) async {
+    final date =
+        DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    return success([
+      ManualRoutineCandidate(
+        RoutineDefinition(
+          rule: RoutineRule(
+            id: 'morning-walk',
+            startDate: date,
+            frequency: RoutineFrequency.daily,
+            creationMode: RoutineCreationMode.manual,
+          ),
+          title: '아침 산책',
+          kind: TaskKind.event,
+          isAllDay: true,
+        ),
+        date,
+      ),
+      ManualRoutineCandidate(
+        RoutineDefinition(
+          rule: RoutineRule(
+            id: 'read-book',
+            startDate: date,
+            frequency: RoutineFrequency.daily,
+            creationMode: RoutineCreationMode.manual,
+          ),
+          title: '책 읽기',
+          kind: TaskKind.todo,
+        ),
+        date,
+      ),
+    ]);
+  }
+}
+
+class _UnusedRoutineRepository implements RoutineRepository {
+  @override
+  Future<Result<List<RoutineDefinition>>> getAll() =>
+      throw UnimplementedError();
+
+  @override
+  Future<Result<RoutineDefinition>> create(RoutineDefinition routine) =>
+      throw UnimplementedError();
 }
 
 class _FixtureAuthSessionRepository implements AuthSessionRepository {

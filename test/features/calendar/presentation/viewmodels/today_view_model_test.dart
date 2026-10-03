@@ -11,6 +11,8 @@ import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_
 import 'package:nae_mo/features/calendar/presentation/states/today_state.dart';
 import 'package:nae_mo/features/calendar/presentation/viewmodels/today_view_model.dart';
 import 'package:nae_mo/features/category/domain/repositories/category_repository.dart';
+import 'package:nae_mo/features/routine/domain/repositories/routine_repository.dart';
+import 'package:nae_mo/features/routine/domain/usecases/manual_routine_candidates.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
 import 'package:nae_mo/features/task/domain/repositories/task_repository.dart';
 import 'package:nae_mo/features/task/domain/usecases/toggle_complete_use_case.dart';
@@ -728,6 +730,9 @@ class _Harness {
     container = ProviderContainer(
       overrides: [
         getTodayOverviewUseCaseProvider.overrideWithValue(loadUseCase),
+        getManualRoutineCandidatesProvider.overrideWithValue(
+          _EmptyManualRoutineCandidates(),
+        ),
         toggleCompleteUseCaseProvider.overrideWithValue(toggleUseCase),
       ],
     );
@@ -790,6 +795,18 @@ class _ControllableToggleCompleteUseCase extends ToggleCompleteUseCase {
 }
 
 class _UnusedTaskRepository extends Fake implements TaskRepository {}
+
+class _UnusedRoutineRepository extends Fake implements RoutineRepository {}
+
+class _EmptyManualRoutineCandidates extends GetManualRoutineCandidates {
+  _EmptyManualRoutineCandidates()
+      : super(_UnusedRoutineRepository(), _UnusedTaskRepository());
+
+  @override
+  Future<Result<List<ManualRoutineCandidate>>> call(
+          DateTime selectedDate) async =>
+      success(const []);
+}
 
 class _UnusedCategoryRepository extends Fake implements CategoryRepository {}
 
