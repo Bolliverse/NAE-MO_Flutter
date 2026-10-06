@@ -1,15 +1,23 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nae_mo/core/database/app_database.dart';
 import 'package:nae_mo/core/errors/app_exception.dart';
 import 'package:nae_mo/core/errors/failure.dart';
+import 'package:nae_mo/features/calendar/domain/usecases/get_month_overview_use_case.dart';
+import 'package:nae_mo/features/calendar/domain/usecases/get_today_overview_use_case.dart';
+import 'package:nae_mo/features/calendar/domain/usecases/get_week_overview_use_case.dart';
 import 'package:nae_mo/features/category/data/datasources/category_local_data_source_impl.dart';
+import 'package:nae_mo/features/category/data/mappers/category_mapper.dart';
+import 'package:nae_mo/features/category/data/repositories/category_repository_impl.dart';
 import 'package:nae_mo/features/routine/data/repositories/routine_repository_impl.dart';
 import 'package:nae_mo/features/routine/domain/entities/routine_definition.dart';
 import 'package:nae_mo/features/routine/domain/entities/routine_rule.dart';
 import 'package:nae_mo/features/routine/domain/usecases/routine_use_cases.dart';
 import 'package:nae_mo/features/task/domain/entities/task.dart';
+import 'package:nae_mo/features/task/data/datasources/task_local_data_source_impl.dart';
+import 'package:nae_mo/features/task/data/mappers/task_mapper.dart';
+import 'package:nae_mo/features/task/data/repositories/task_repository_impl.dart';
 
 void main() {
   late AppDatabase db;
@@ -75,6 +83,125 @@ void main() {
     expect(loaded.last.isAllDay, true);
     expect(loaded.last.rule.endDate, DateTime(2026, 12, 31));
     expect(loaded.last.rule.creationMode, RoutineCreationMode.automatic);
+  });
+
+  test('bounded automatic Todo creates linked tasks visible by date and range',
+      () async {
+    final rule = RoutineRule(
+      id: 'daily-auto',
+      startDate: DateTime(2026, 10, 1),
+      endDate: DateTime(2026, 10, 3),
+      frequency: RoutineFrequency.daily,
+      creationMode: RoutineCreationMode.automatic,
+    );
+    final saved = await CreateRoutineUseCase(repository)(
+      _routine(id: rule.id, title: '물 마시기', rule: rule),
+    );
+    expect(saved.failure, null);
+
+    final dates = (await db.select(db.taskTable).get())
+        .map((task) => task.targetDate)
+        .toList();
+    expect(dates, [
+      DateTime(2026, 10, 1),
+      DateTime(2026, 10, 2),
+      DateTime(2026, 10, 3),
+    ]);
+    final day = await (db.select(db.taskTable)
+          ..where((row) => row.targetDate.equals(DateTime(2026, 10, 2))))
+        .get();
+    expect(day.single.routineId, rule.id);
+    expect(day.single.title, '물 마시기');
+    expect(day.single.kind, TaskKind.todo);
+    expect(day.single.startDateTime, DateTime(2026, 10, 2, 9));
+    expect(day.single.endDateTime, DateTime(2026, 10, 2, 10));
+
+    final tasks = TaskRepositoryImpl(
+      dataSource: TaskLocalDataSourceImpl(db),
+      mapper: const TaskMapper(),
+    );
+    final categories = CategoryRepositoryImpl(
+      dataSource: CategoryLocalDataSourceImpl(db),
+      mapper: const CategoryMapper(),
+    );
+    final today = (await GetTodayOverviewUseCase(tasks, categories)(
+      DateTime(2026, 10, 2),
+    ))
+        .data!;
+    final week = (await GetWeekOverviewUseCase(tasks, categories)(
+      DateTime(2026, 10, 2),
+    ))
+        .data!;
+    final month = (await GetMonthOverviewUseCase(tasks, categories)(
+      DateTime(2026, 10, 1),
+    ))
+        .data!;
+    expect(today.timelineItems.single.task.routineId, rule.id);
+    expect(week.days[DateTime.friday - 1].todoCount, 1);
+    expect(month.day(2).entries.single.task.routineId, rule.id);
+
+    await repository.getAll();
+    expect((await db.select(db.taskTable).get()), hasLength(3));
+  });
+
+  test('monthly automatic event uses clamped dates and all-day shape',
+      () async {
+    final rule = RoutineRule(
+      id: 'monthly-auto',
+      startDate: DateTime(2027, 1, 31),
+      endDate: DateTime(2027, 4, 30),
+      frequency: RoutineFrequency.monthly,
+      creationMode: RoutineCreationMode.automatic,
+    );
+    final saved = await CreateRoutineUseCase(repository)(
+      _routine(
+        id: rule.id,
+        title: '월말 점검',
+        kind: TaskKind.event,
+        rule: rule,
+        hasTime: false,
+        isAllDay: true,
+        startMinute: null,
+        endMinute: null,
+      ),
+    );
+    expect(saved.failure, null);
+    final rows = await db.select(db.taskTable).get();
+    expect(rows.map((row) => row.targetDate), [
+      DateTime(2027, 1, 31),
+      DateTime(2027, 2, 28),
+      DateTime(2027, 3, 31),
+      DateTime(2027, 4, 30),
+    ]);
+    expect(rows.every((row) => row.isAllDay && !row.hasTime), isTrue);
+  });
+
+  test('manual rule persists without creating Tasks', () async {
+    final saved = await CreateRoutineUseCase(repository)(
+      _routine(id: 'manual'),
+    );
+    expect(saved.failure, null);
+    expect(await db.select(db.taskTable).get(), isEmpty);
+  });
+
+  test('automatic insert failure rolls back the routine and all Tasks',
+      () async {
+    await db.customStatement('''CREATE TRIGGER reject_auto_task
+      BEFORE INSERT ON tasks WHEN NEW.title = 'rollback' BEGIN
+      SELECT RAISE(ABORT, 'simulated task failure'); END''');
+    final rule = RoutineRule(
+      id: 'rollback',
+      startDate: DateTime(2026, 10, 1),
+      endDate: DateTime(2026, 10, 2),
+      frequency: RoutineFrequency.daily,
+      creationMode: RoutineCreationMode.automatic,
+    );
+    final saved = await CreateRoutineUseCase(repository)(
+      _routine(id: rule.id, title: 'rollback', rule: rule),
+    );
+    expect(saved.failure, isA<CacheFailure>());
+    expect(await db.select(db.routineTable).get(), isEmpty);
+    expect(await db.select(db.taskTable).get(), isEmpty);
   });
 
   test('duplicate ID failure leaves the original routine unchanged', () async {
