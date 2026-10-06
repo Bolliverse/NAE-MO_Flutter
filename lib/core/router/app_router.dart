@@ -115,6 +115,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return RoutineManagementPage(
             initialDate: selectedDate,
             onClose: () => context.go(returnLocation),
+            onChanged: () {
+              // Invalidate all three cached ranges after writing real occurrences.
+              // https://docs-v2.riverpod.dev/docs/essentials/auto_dispose
+              ref.invalidate(todayViewModelProvider);
+              ref.invalidate(weekOverviewProvider);
+              ref.invalidate(monthOverviewProvider);
+            },
           );
         },
       ),
