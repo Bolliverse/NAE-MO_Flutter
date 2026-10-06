@@ -25,6 +25,7 @@ class RoutineManagementPage extends ConsumerStatefulWidget {
     this.loader,
     this.creator,
     this.categoryLoader,
+    this.onChanged,
     super.key,
   });
 
@@ -33,6 +34,7 @@ class RoutineManagementPage extends ConsumerStatefulWidget {
   final RoutineLoader? loader;
   final RoutineCreator? creator;
   final NewItemCategoryLoader? categoryLoader;
+  final VoidCallback? onChanged;
 
   @override
   ConsumerState<RoutineManagementPage> createState() =>
@@ -88,6 +90,7 @@ class _RoutineManagementPageState extends ConsumerState<RoutineManagementPage> {
     );
     if (!mounted || saved == null) return;
     setState(() => _routines = [...?_routines, saved]);
+    widget.onChanged?.call();
   }
 
   @override
@@ -122,7 +125,7 @@ class _RoutineManagementPageState extends ConsumerState<RoutineManagementPage> {
             const Divider(height: 1, color: _border),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Text('루틴 규칙을 저장합니다. 날짜별 항목 생성은 다음 단계에서 제공됩니다.',
+              child: Text('수동 루틴은 날짜별 후보로, 자동 루틴은 실제 항목으로 추가됩니다.',
                   style: TextStyle(color: _muted, fontSize: 12)),
             ),
             Expanded(
@@ -239,6 +242,7 @@ class _CreateRoutineSheetState extends ConsumerState<_CreateRoutineSheet> {
   late DateTime _start;
   DateTime? _end;
   RoutineFrequency _frequency = RoutineFrequency.daily;
+  RoutineCreationMode _creationMode = RoutineCreationMode.manual;
   RoutineIntervalUnit _unit = RoutineIntervalUnit.day;
   final _weekdays = <int>{};
   bool _timed = false;
@@ -261,7 +265,7 @@ class _CreateRoutineSheetState extends ConsumerState<_CreateRoutineSheet> {
         startDate: DateTime(start.year, start.month, start.day),
         endDate: end == null ? null : DateTime(end.year, end.month, end.day),
         frequency: _frequency,
-        creationMode: RoutineCreationMode.manual,
+        creationMode: _creationMode,
         interval: _frequency == RoutineFrequency.custom
             ? int.tryParse(_interval.text.trim()) ?? 0
             : 1,
@@ -569,6 +573,8 @@ class _CreateRoutineSheetState extends ConsumerState<_CreateRoutineSheet> {
                                   tooltip: '종료일 지우기',
                                   onPressed: () => _set(() {
                                         _end = null;
+                                        _creationMode =
+                                            RoutineCreationMode.manual;
                                       }),
                                   icon: const Icon(Icons.close_rounded)),
                           ]),
@@ -578,11 +584,41 @@ class _CreateRoutineSheetState extends ConsumerState<_CreateRoutineSheet> {
                                     color: Color(0xFFB42318), fontSize: 12)),
                           const SizedBox(height: 20),
                           const _Label('추가 방식'),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Expanded(
+                                child: _SelectButton(
+                                    key: const Key('routineManualMode'),
+                                    title: '수동 추가',
+                                    selected: _creationMode ==
+                                        RoutineCreationMode.manual,
+                                    onTap: () => _set(() => _creationMode =
+                                        RoutineCreationMode.manual))),
+                            const SizedBox(width: 8),
+                            Expanded(
+                                child: _SelectButton(
+                                    key: const Key('routineAutomaticMode'),
+                                    title: '자동 추가',
+                                    selected: _creationMode ==
+                                        RoutineCreationMode.automatic,
+                                    // A missing end date cannot produce a bounded set.
+                                    // https://api.flutter.dev/flutter/material/OutlinedButton-class.html
+                                    onTap: _end == null
+                                        ? null
+                                        : () => _set(() => _creationMode =
+                                            RoutineCreationMode.automatic))),
+                          ]),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
-                                '수동 추가 규칙으로 저장됩니다. 후보 표시와 자동 추가는 후속 기능입니다.',
-                                style: TextStyle(fontSize: 12, color: _muted)),
+                                _end == null
+                                    ? '종료일 없는 루틴은 수동으로만 추가할 수 있어요.'
+                                    : _creationMode ==
+                                            RoutineCreationMode.automatic
+                                        ? '종료일까지 반복 날짜에 일정/Todo가 바로 추가됩니다.'
+                                        : '반복 날짜에 후보가 표시되고, 선택해서 추가할 수 있어요.',
+                                style: const TextStyle(
+                                    fontSize: 12, color: _muted)),
                           ),
                           const SizedBox(height: 16),
                           const _Label('시간'),
@@ -662,7 +698,7 @@ class _SelectButton extends StatelessWidget {
       super.key});
   final String title;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) => OutlinedButton(
         onPressed: onTap,
