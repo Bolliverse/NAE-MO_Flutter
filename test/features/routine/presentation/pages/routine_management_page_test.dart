@@ -27,7 +27,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('routineRow-existing')), findsOneWidget);
     expect(find.text('아침 운동'), findsOneWidget);
-    expect(find.textContaining('다음 단계'), findsOneWidget);
+    expect(find.textContaining('수동 루틴은 날짜별 후보'), findsOneWidget);
     await tester.tap(find.byKey(const Key('routineCloseButton')));
     expect(closes, 1);
   });
@@ -102,6 +102,78 @@ void main() {
     expect(submitted!.isAllDay, true);
     expect(submitted!.hasTime, false);
     expect(submitted!.rule.creationMode, RoutineCreationMode.manual);
+  });
+
+  testWidgets('automatic mode needs an end date and persists the selection',
+      (tester) async {
+    RoutineDefinition? submitted;
+    var changes = 0;
+    await _pump(
+      tester,
+      onChanged: () => changes++,
+      creator: (routine) async {
+        submitted = routine;
+        return result.success(routine);
+      },
+    );
+    await tester.tap(find.byKey(const Key('routineAddButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('routineTitleField')), '매일 운동');
+    final automatic = find.byKey(const Key('routineAutomaticMode'));
+    await tester.ensureVisible(automatic);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.descendant(
+                of: automatic, matching: find.byType(OutlinedButton)),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(find.textContaining('종료일 없는 루틴'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('routineEndDate')));
+    await tester.tap(find.byKey(const Key('routineEndDate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(automatic);
+    await tester.tap(automatic);
+    await tester.pump();
+    expect(find.textContaining('바로 추가됩니다'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('routineCreateButton')));
+    await tester.pumpAndSettle();
+
+    expect(submitted!.rule.creationMode, RoutineCreationMode.automatic);
+    expect(submitted!.rule.endDate, DateTime(2026, 9, 30));
+    expect(changes, 1);
+  });
+
+  testWidgets('clearing end date restores manual mode', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.byKey(const Key('routineAddButton')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('routineEndDate')));
+    await tester.tap(find.byKey(const Key('routineEndDate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    final automatic = find.byKey(const Key('routineAutomaticMode'));
+    await tester.ensureVisible(automatic);
+    await tester.tap(automatic);
+    await tester.ensureVisible(find.byKey(const Key('routineClearEndDate')));
+    await tester.tap(find.byKey(const Key('routineClearEndDate')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.descendant(
+                of: automatic, matching: find.byType(OutlinedButton)),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(find.textContaining('종료일 없는 루틴'), findsOneWidget);
   });
 
   testWidgets('custom interval rejects zero then stores every two weekends',
@@ -231,12 +303,14 @@ Future<void> _pump(
   RoutineLoader? loader,
   RoutineCreator? creator,
   VoidCallback? onClose,
+  VoidCallback? onChanged,
 }) async {
   await tester.pumpWidget(ProviderScope(
       child: MaterialApp(
     home: RoutineManagementPage(
       initialDate: DateTime(2026, 9, 30),
       onClose: onClose ?? () {},
+      onChanged: onChanged,
       loader: loader ?? () async => result.success(const <RoutineDefinition>[]),
       creator: creator ?? (routine) async => result.success(routine),
       categoryLoader: () async => result.success(const []),
